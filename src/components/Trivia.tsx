@@ -1,7 +1,9 @@
-import { useState } from 'react';
+
+import { useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import Modelo from './Modelo'
+
 
 interface TriviaProps {
     modelId?: string | null;
@@ -119,7 +121,7 @@ export function Trivia({ modelId }: TriviaProps) {
         }
     };
 
-    // Obtenemos los datos basados en el modelId, o mandamos un default si no encuentra coincidencia/viene nulo
+
     const currentData = modelId && triviaData[modelId] ? triviaData[modelId] : triviaData['ochoa'];
     const { questions, player } = currentData;
 
@@ -131,15 +133,13 @@ export function Trivia({ modelId }: TriviaProps) {
     const question = questions[currentQuestionIndex];
 
     const handleAnswer = (id: string) => {
-        if (selectedAnswer) return; // Prevent multiple clicks
+        if (selectedAnswer) return;
 
         setSelectedAnswer(id);
 
         if (id === question.correct) {
             setScore(prev => prev + 1);
         }
-
-        // Wait a moment before moving to the next question
         setTimeout(() => {
             if (currentQuestionIndex < questions.length - 1) {
                 setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -206,21 +206,27 @@ export function Trivia({ modelId }: TriviaProps) {
 
                         {/* Render del Modelo 3D */}
                         <div className="absolute inset-0 z-10">
-                            <Canvas
-                                camera={{ position: [0, 0, 4.5], fov: 50 }}
-                                gl={{ alpha: true, antialias: true }}
-                            >
-                                <hemisphereLight intensity={0.7} groundColor="#555555" />
-                                <directionalLight position={[3, 4, 5]} intensity={0.9} />
-                                <directionalLight position={[-3, -2, 5]} intensity={0.4} />
-                                <directionalLight position={[0, 2, -5]} intensity={0.35} />
+                            {/* 3. Renderizamos el Canvas solo si modelId existe, imitando el éxito de ScanResult */}
+                            {modelId && (
+                                <Canvas
+                                    camera={{ position: [0, 0, 4.5], fov: 50 }}
+                                    gl={{ alpha: true, antialias: true }}
+                                    onCreated={({ gl }) => gl.setClearColor(0x000000, 0)} // Aseguramos transparencia total
+                                >
+                                    <hemisphereLight intensity={0.7} groundColor="#555555" />
+                                    <directionalLight position={[3, 4, 5]} intensity={0.9} />
+                                    <directionalLight position={[-3, -2, 5]} intensity={0.4} />
+                                    <directionalLight position={[0, 2, -5]} intensity={0.35} />
 
-                                <group scale={0.75} position={[0, -0.2, 0]} rotation={[50.2, -26.5, 49.85]}>
-                                    {modelId && <Modelo textureId={modelId} />}
-                                </group>
+                                    <group scale={0.75} position={[0, -0.2, 0]} rotation={[50.2, -26.5, 49.85]}>
+                                        <Suspense fallback={null}>
+                                            <Modelo textureId={modelId} preview={true} />
+                                        </Suspense>
+                                    </group>
 
-                                <OrbitControls enableZoom={false} enablePan={false} />
-                            </Canvas>
+                                    <OrbitControls enableZoom={false} enablePan={false} />
+                                </Canvas>
+                            )}
                         </div>
 
                         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent z-20 pointer-events-none"></div>

@@ -53,23 +53,22 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
 
     const filters = [
         { id: 'none', label: 'Normal', style: {} },
-        { id: 'pixelate', label: 'Pixelado', style: { filter: 'url(#pixelate)' } }, // Note: SVG filter needs to be defined
+        { id: 'pixelate', label: 'Pixelado', style: { filter: 'url(#pixelate)' } },
         { id: 'vintage', label: 'Vintage', style: { filter: 'sepia(0.5) contrast(1.2)' } },
-        { id: 'blur', label: 'Desenfoque', style: { filter: 'blur(4px)' } },
-        { id: 'thermal', label: 'Térmica', style: { filter: 'invert(1) hue-rotate(180deg) contrast(1.5)' } },
+        { id: 'blur', label: 'Difuminado', style: { filter: 'blur(4px)' } },
+        { id: 'thermal', label: 'Aberración', style: { filter: 'invert(1) hue-rotate(180deg) contrast(1.5)' } },
         { id: 'color', label: 'Color', style: { filter: 'saturate(2) contrast(1.1) hue-rotate(15deg)' } },
     ];
 
-    // SVG Filter definition for pixelate effect
     const SvgFilters = () => (
         <svg className="hidden">
             <defs>
                 <filter id="pixelate" x="0" y="0">
-                    <feFlood x="2" y="2" height="1" width="1" />
-                    <feComposite width="4" height="4" />
+                    <feFlood x="16" y="16" height="2" width="2" />
+                    <feComposite width="32" height="32" />
                     <feTile result="a" />
                     <feComposite in="SourceGraphic" in2="a" operator="in" />
-                    <feMorphology operator="dilate" radius="2" />
+                    <feMorphology operator="dilate" radius="16" />
                 </filter>
             </defs>
         </svg>
@@ -161,36 +160,42 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
             </div>
 
             {/* Filter Controls */}
-            <div className="bg-[#111] pb-10 pt-6 border-t border-gray-800 mt-auto">
-                <div className="flex items-center justify-between px-8 mb-6">
-                    <div className="text-gray-400 text-xs font-black uppercase tracking-widest">
-                        Efectos Visuales
-                    </div>
-                    <div className="h-px bg-gray-800 flex-1 ml-4"></div>
-                </div>
+            <div className="flex overflow-x-auto px-8 space-x-6 pb-4 custom-scrollbar snap-x">
+                {filters.map((filter) => (
+                    <button
+                        key={filter.id}
+                        onClick={() => setActiveFilter(filter.id)}
+                        className={`shrink-0 flex flex-col items-center space-y-3 group snap-center transition-all ${activeFilter === filter.id ? 'opacity-100' : 'opacity-50 hover:opacity-100'
+                            }`}
+                    >
+                        <div className={`w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all duration-300 p-1 ${activeFilter === filter.id
+                            ? 'border-wc-red scale-110 shadow-[0_0_20px_rgba(230,57,70,0.3)]'
+                            : 'border-transparent group-hover:border-white/20 hover:scale-105 bg-gray-800/50'
+                            }`}>
+                            {/* SOLUCIÓN CREATIVA: 
+                                    1. Fondo con gradiente para que los colores reaccionen al filtro.
+                                    2. style={filter.style} aplica el CSS del filtro al propio botón. 
+                                */}
+                            <div
+                                className="w-full h-full rounded-xl overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500"
+                                style={filter.style}
+                            >
+                                {/* Capa oscura semitransparente para que el texto siempre sea legible */}
+                                <div className="absolute inset-0 bg-black/30"></div>
 
-                <div className="flex overflow-x-auto px-8 space-x-6 pb-4 custom-scrollbar snap-x">
-                    {filters.map((filter) => (
-                        <button
-                            key={filter.id}
-                            onClick={() => setActiveFilter(filter.id)}
-                            className={`shrink-0 flex flex-col items-center space-y-3 group snap-center transition-all ${activeFilter === filter.id ? 'opacity-100' : 'opacity-50 hover:opacity-100'
-                                }`}
-                        >
-                            <div className={`w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all duration-300 p-1 ${activeFilter === filter.id ? 'border-wc-red scale-110 shadow-[0_0_20px_rgba(230,57,70,0.3)]' : 'border-transparent group-hover:border-white/20 hover:scale-105 bg-gray-800/50'
-                                }`}>
-                                <div className="w-full h-full rounded-xl bg-gray-900 overflow-hidden relative flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-linear-to-tr from-gray-800 to-gray-700 opacity-50"></div>
-                                    <span className="text-[10px] text-gray-400 uppercase font-bold relative z-10 tracking-wider">Fx</span>
-                                </div>
+                                {/* Aquí insertamos el nombre de manera dinámica */}
+                                <span className="text-[10px] text-white uppercase font-black relative z-10 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center px-1">
+                                    {filter.label}
+                                </span>
                             </div>
-                            <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${activeFilter === filter.id ? 'text-wc-red' : 'text-gray-500'
-                                }`}>
-                                {filter.label}
-                            </span>
-                        </button>
-                    ))}
-                </div>
+                        </div>
+
+                        <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${activeFilter === filter.id ? 'text-wc-red' : 'text-gray-500'
+                            }`}>
+                            {filter.label}
+                        </span>
+                    </button>
+                ))}
             </div>
         </div>
     );
