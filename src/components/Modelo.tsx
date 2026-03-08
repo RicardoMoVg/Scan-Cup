@@ -1,7 +1,7 @@
 import { useLoader, useFrame, useThree } from '@react-three/fiber'
 import { OBJLoader } from 'three-stdlib'
 import { TextureLoader } from 'three'
-import { useEffect, useRef, useMemo } from 'react'
+import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 
 interface ModeloProps {
@@ -57,7 +57,7 @@ export default function Modelo({ textureId, qrData, preview }: ModeloProps) {
 
   const targetPosition = useRef(new THREE.Vector3())
 
-  useFrame((state, delta) => {
+  useFrame((state: any, delta: number) => {
     if (!trackingRef.current || !animationRef.current) return
 
     if (!qrData) {

@@ -32,9 +32,8 @@ export function ScanResult({
     <>
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm">
         <div
-          className={`w-full max-w-md bg-white rounded-t-[40px] sm:rounded-[40px] overflow-hidden shadow-2xl transform transition-transform duration-500 ease-out ${
-            animate ? "translate-y-0" : "translate-y-full"
-          }`}
+          className={`w-full max-w-md bg-white rounded-t-[40px] sm:rounded-[40px] overflow-hidden shadow-2xl transform transition-transform duration-500 ease-out ${animate ? "translate-y-0" : "translate-y-full"
+            }`}
         >
           {/* HEADER */}
           <div className="flex justify-between items-center p-6 pb-2">
@@ -73,7 +72,7 @@ export function ScanResult({
                       alpha: true,
                       antialias: true
                     }}
-                    onCreated={({ gl }) => {
+                    onCreated={({ gl }: any) => {
                       gl.setClearColor(0x000000, 0)
                     }}
                   >
@@ -108,7 +107,7 @@ export function ScanResult({
                       position={[0, 0, 0]}
                       rotation={[50.2, -26.5, 49.85]}
                     >
-                      <Modelo textureId={modelId} preview />
+                      <Modelo textureId={modelId} preview={true} />
                     </group>
 
                     <OrbitControls enableZoom enablePan={false} />
@@ -120,19 +119,27 @@ export function ScanResult({
             )}
 
             {/* BOTONES */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <button
-                onClick={onAdd}
-                className="py-6 px-6 rounded-2xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all shadow-lg active:scale-95"
-              >
-                Agregar
-              </button>
+            <div className="flex flex-col gap-3 mb-4">
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={onAdd}
+                  className="py-4 px-4 rounded-2xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all shadow-lg active:scale-95"
+                >
+                  Agregar
+                </button>
 
+                <button
+                  onClick={() => setShowStats(true)}
+                  className="py-4 px-4 rounded-2xl bg-white border border-gray-300 font-bold hover:bg-gray-100 transition-all shadow-lg text-gray-800 active:scale-95"
+                >
+                  Estadísticas
+                </button>
+              </div>
               <button
-                onClick={() => setShowStats(true)}
-                className="py-6 px-6 rounded-2xl bg-white border border-gray-300 font-bold hover:bg-gray-100 transition-all shadow-lg active:scale-95"
+                onClick={onStartTrivia}
+                className="py-4 px-4 rounded-2xl bg-wc-red text-white font-bold hover:bg-red-700 transition-all shadow-lg active:scale-95"
               >
-                Estadísticas
+                Jugar Trivia
               </button>
             </div>
           </div>
@@ -144,7 +151,6 @@ export function ScanResult({
           card={card}
           onClose={() => {
             setShowStats(false)
-            onStartTrivia()
           }}
         />
       )}

@@ -111,7 +111,7 @@ function App() {
         )
 
       case 'trivia':
-        return <Trivia />
+        return <Trivia modelId={scannedModelId} />
 
       case 'market':
         return (

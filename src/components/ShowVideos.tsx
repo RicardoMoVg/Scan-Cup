@@ -5,9 +5,20 @@ interface ShowVideosProps {
 
 export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
     const videos = [
-        { id: 1, title: 'Gol de Messi vs México', duration: '0:45', thumbnail: 'https://images.unsplash.com/photo-1517466787929-bc90951d6dbd?q=80&w=2670' },
-        { id: 2, title: 'Atajada de Dibu', duration: '0:30', thumbnail: 'https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=2564' },
-        { id: 3, title: 'Gol de Mbappé Final', duration: '0:55', thumbnail: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=2670' },
+        {
+            id: 1,
+            title: 'Gol de Messi',
+            duration: 'Valioso',
+            thumbnail: 'https://images.unsplash.com/photo-1517466787929-bc90951d6dbd?q=80&w=2670',
+            url: "/videos/Messi.mp4"
+        },
+        {
+            id: 2,
+            title: 'Gol de Iniesta',
+            duration: 'Mundial',
+            thumbnail: 'https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=2564',
+            url: "/videos/Gol de Andres Iniesta-España Campeon [6-EqlQMPmDI].mp4"
+        }
     ];
 
     return (
@@ -32,9 +43,19 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
                         onClick={() => onVideoSelect(video)}
                         className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 cursor-pointer transform hover:scale-[1.02] transition-all duration-300 group"
                     >
-                        <div className="relative aspect-video bg-gray-200 flex items-center justify-center">
-
-                            <span className="text-gray-400 font-bold text-xs uppercase tracking-widest"></span>
+                        <div className="relative aspect-video bg-gray-200 flex items-center justify-center overflow-hidden">
+                            <video
+                                src={video.url}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                                onMouseOver={e => e.currentTarget.play()}
+                                onMouseOut={e => {
+                                    e.currentTarget.pause();
+                                    e.currentTarget.currentTime = 0;
+                                }}
+                            />
+                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300" />
                         </div>
                         <div className="p-4 flex justify-between items-center">
                             <div>
