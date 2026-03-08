@@ -49,6 +49,7 @@ export function BottomNav({ currentView, onChangeView }: BottomNavProps) {
             {navItems.map((item) => (
                 <button
                     key={item.id}
+                    id={`nav-${item.id}`}
                     onClick={() => onChangeView(item.id as any)}
                     className="flex flex-col items-center justify-center space-y-1 w-full"
                 >
