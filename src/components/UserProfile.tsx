@@ -1,4 +1,32 @@
 import type { User } from '../types';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { OBJLoader, MTLLoader } from 'three-stdlib';
+import { Suspense, useRef } from 'react';
+import * as THREE from 'three';
+
+function BallObjModel() {
+    const materials = useLoader(MTLLoader, '/models/Ball OBJ.mtl');
+    const obj = useLoader(OBJLoader, '/models/Ball OBJ.obj', (loader: any) => {
+        materials.preload();
+        loader.setMaterials(materials);
+    });
+
+    const meshRef = useRef<THREE.Group>(null!);
+
+    useFrame((_: any, delta: number) => {
+        if (meshRef.current) {
+            meshRef.current.rotation.y += delta * 0.5;
+        }
+    });
+
+    // Se ajusta la escala y posición para que quede centrado en el avatar
+    return (
+        <group ref={meshRef} scale={[0.8, 0.8, 0.8]} position={[0, -0.5, 0]}>
+            <primitive object={obj} />
+        </group>
+    );
+}
 
 interface UserProfileProps {
     user: User;
@@ -65,12 +93,15 @@ export function UserProfile({ user, onBack }: UserProfileProps) {
                 <div className="bg-white rounded-2xl p-8 shadow-lg mb-4">
                     <div className="flex items-center gap-5 mb-8">
                         <div className="relative">
-                            <div className="w-24 h-24 rounded-xl overflow-hidden border-4 border-wc-red shadow-md">
-                                <img
-                                    src={user.avatarUrl}
-                                    alt={user.name}
-                                    className="w-full h-full object-cover"
-                                />
+                            <div className="w-24 h-24 rounded-xl overflow-hidden border-4 border-wc-red shadow-md bg-gray-900 flex items-center justify-center">
+                                <Canvas camera={{ position: [0, 0, 4], fov: 45 }}>
+                                    <ambientLight intensity={1.5} />
+                                    <directionalLight position={[5, 10, 5]} intensity={2} />
+                                    <Suspense fallback={null}>
+                                        <BallObjModel />
+                                    </Suspense>
+                                    <OrbitControls enableZoom={false} enablePan={false} />
+                                </Canvas>
                             </div>
                             <div className="absolute -bottom-2 -right-2 bg-wc-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-md">
                                 Nvl {user.level}

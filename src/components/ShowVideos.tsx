@@ -18,6 +18,34 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
             duration: 'Mundial',
             thumbnail: 'https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=2564',
             url: "/videos/Gol de Andres Iniesta-España Campeon [6-EqlQMPmDI].mp4"
+        },
+        {
+            id: 3,
+            title: 'Jugada Destacada 1',
+            duration: 'Épico',
+            thumbnail: '',
+            url: "/videos/Video 3.mp4"
+        },
+        {
+            id: 4,
+            title: 'Momento Clave',
+            duration: 'Increíble',
+            thumbnail: '',
+            url: "/videos/Video 4.mp4"
+        },
+        {
+            id: 5,
+            title: 'Gran Atajada',
+            duration: 'Salvador',
+            thumbnail: '',
+            url: "/videos/Video 5.mp4"
+        },
+        {
+            id: 6,
+            title: 'Tiro Libre',
+            duration: 'Precisión',
+            thumbnail: '',
+            url: "/videos/Video 6.mp4"
         }
     ];
 
