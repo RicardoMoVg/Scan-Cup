@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface EditVideosProps {
     video: any;
@@ -7,11 +7,56 @@ interface EditVideosProps {
 
 export function EditVideos({ video, onBack }: EditVideosProps) {
     const [activeFilter, setActiveFilter] = useState('none');
+    const [pixelSize, setPixelSize] = useState(8);
 
     const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animFrameRef = useRef<number>(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        if (activeFilter !== 'pixelate') {
+            cancelAnimationFrame(animFrameRef.current);
+            return;
+        }
+
+        const renderPixelated = () => {
+            if (!video || !canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const size = Math.max(1, pixelSize);
+
+            // Dibuja pequeño (reducido por el factor de píxel)
+            ctx.drawImage(video, 0, 0, Math.ceil(w / size), Math.ceil(h / size));
+
+            // Escala de vuelta sin suavizado → efecto pixelado
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(canvas, 0, 0, Math.ceil(w / size), Math.ceil(h / size), 0, 0, w, h);
+
+            animFrameRef.current = requestAnimationFrame(renderPixelated);
+        };
+
+        animFrameRef.current = requestAnimationFrame(renderPixelated);
+        return () => cancelAnimationFrame(animFrameRef.current);
+    }, [activeFilter, pixelSize]);
+
+    // Sincroniza el tamaño del canvas con el video
+    const handleLoadedMetadata = () => {
+        if (videoRef.current && canvasRef.current) {
+            canvasRef.current.width = videoRef.current.videoWidth || 1280;
+            canvasRef.current.height = videoRef.current.videoHeight || 720;
+            setDuration(videoRef.current.duration);
+        }
+    };
 
     const formatTime = (time: number) => {
         if (!time || isNaN(time)) return '0:00';
@@ -23,12 +68,6 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
     const handleTimeUpdate = () => {
         if (videoRef.current) {
             setCurrentTime(videoRef.current.currentTime);
-        }
-    };
-
-    const handleLoadedMetadata = () => {
-        if (videoRef.current) {
-            setDuration(videoRef.current.duration);
         }
     };
 
@@ -52,31 +91,16 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
     };
 
     const filters = [
-        { id: 'none', label: 'Normal', style: {} },
-        { id: 'pixelate', label: 'Pixelado', style: { filter: 'url(#pixelate)' } },
-        { id: 'vintage', label: 'Vintage', style: { filter: 'sepia(0.5) contrast(1.2)' } },
-        { id: 'blur', label: 'Difuminado', style: { filter: 'blur(4px)' } },
-        { id: 'thermal', label: 'Aberración', style: { filter: 'invert(1) hue-rotate(180deg) contrast(1.5)' } },
-        { id: 'color', label: 'Color', style: { filter: 'saturate(2) contrast(1.1) hue-rotate(15deg)' } },
+        { id: 'none', label: 'Normal', style: {}, icon: '/Iconos/normal.png' },
+        { id: 'pixelate', label: 'Pixelado', style: { imageRendering: 'pixelated' as const, filter: 'contrast(1.1)' }, icon: '/Iconos/pixelado.png' },
+        { id: 'vintage', label: 'Vintage', style: { filter: 'sepia(0.5) contrast(1.2)' }, icon: '/Iconos/vintage.png' },
+        { id: 'blur', label: 'Difuminado', style: { filter: 'blur(4px)' }, icon: '/Iconos/difuminado.png' },
+        { id: 'thermal', label: 'Aberración', style: { filter: 'invert(1) hue-rotate(180deg) contrast(1.5)' }, icon: '/Iconos/aberración.png' },
+        { id: 'color', label: 'Color', style: { filter: 'saturate(2) contrast(1.1) hue-rotate(15deg)' }, icon: '/Iconos/color.png' },
     ];
-
-    const SvgFilters = () => (
-        <svg className="hidden">
-            <defs>
-                <filter id="pixelate" x="0" y="0">
-                    <feFlood x="16" y="16" height="2" width="2" />
-                    <feComposite width="32" height="32" />
-                    <feTile result="a" />
-                    <feComposite in="SourceGraphic" in2="a" operator="in" />
-                    <feMorphology operator="dilate" radius="16" />
-                </filter>
-            </defs>
-        </svg>
-    );
 
     return (
         <div className="min-h-screen bg-wc-dark-bg flex flex-col font-heading">
-            <SvgFilters />
 
             {/* Header */}
             <div className="relative p-6 z-20 flex justify-between items-center bg-wc-dark-bg/95 border-b border-gray-800">
@@ -108,7 +132,13 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                                 onLoadedMetadata={handleLoadedMetadata}
                                 onClick={togglePlay}
                                 className="w-full h-full object-cover transition-all duration-500 ease-in-out cursor-pointer"
-                                style={filters.find(f => f.id === activeFilter)?.style}
+                                style={activeFilter === 'pixelate' ? { visibility: 'hidden' } : filters.find(f => f.id === activeFilter)?.style}
+                            />
+                            <canvas
+                                ref={canvasRef}
+                                onClick={togglePlay}
+                                className="absolute inset-0 w-full h-full object-cover cursor-pointer"
+                                style={{ display: activeFilter === 'pixelate' ? 'block' : 'none', imageRendering: 'pixelated' }}
                             />
                             {/* Play/Pause Overlay */}
                             <div
@@ -159,6 +189,23 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                 )}
             </div>
 
+            {/* Pixelate intensity slider */}
+            {activeFilter === 'pixelate' && (
+                <div className="px-8 pb-2 flex items-center gap-4">
+                    <span className="text-gray-400 text-xs uppercase font-black tracking-widest shrink-0">Píxeles</span>
+                    <input
+                        type="range"
+                        min={2}
+                        max={32}
+                        step={1}
+                        value={pixelSize}
+                        onChange={e => setPixelSize(Number(e.target.value))}
+                        className="flex-1 accent-wc-red"
+                    />
+                    <span className="text-wc-red text-xs font-black w-6 text-right">{pixelSize}</span>
+                </div>
+            )}
+
             {/* Filter Controls */}
             <div className="flex overflow-x-auto px-8 space-x-6 pb-4 custom-scrollbar snap-x">
                 {filters.map((filter) => (
@@ -172,21 +219,14 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                             ? 'border-wc-red scale-110 shadow-[0_0_20px_rgba(230,57,70,0.3)]'
                             : 'border-transparent group-hover:border-white/20 hover:scale-105 bg-gray-800/50'
                             }`}>
-                            {/* SOLUCIÓN CREATIVA: 
-                                    1. Fondo con gradiente para que los colores reaccionen al filtro.
-                                    2. style={filter.style} aplica el CSS del filtro al propio botón. 
-                                */}
                             <div
-                                className="w-full h-full rounded-xl overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500"
-                                style={filter.style}
+                                className="w-full h-full rounded-xl overflow-hidden relative flex items-center justify-center bg-gray-900"
                             >
-                                {/* Capa oscura semitransparente para que el texto siempre sea legible */}
-                                <div className="absolute inset-0 bg-black/30"></div>
-
-                                {/* Aquí insertamos el nombre de manera dinámica */}
-                                <span className="text-[10px] text-white uppercase font-black relative z-10 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center px-1">
-                                    {filter.label}
-                                </span>
+                                <img
+                                    src={filter.icon}
+                                    alt={filter.label}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                         </div>
 
