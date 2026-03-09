@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTour } from './hooks/useTour'
 import { mockUser, mockCards } from './data/mock'
 import { BottomNav } from './components/BottomNav'
 import { Home } from './components/Home'
@@ -26,6 +27,7 @@ function App() {
   >('home')
 
   const [selectedVideo, setSelectedVideo] = useState<any>(null)
+  const { startTour } = useTour()
 
   // guarda el modelId escaneado
   const [scannedModelId, setScannedModelId] = useState<string | null>(null)
@@ -42,6 +44,7 @@ function App() {
             user={mockUser}
             onScanClick={() => setView('scan')}
             onViewCollection={() => setView('user-collection')}
+            onStartTour={startTour}
           />
         )
 
