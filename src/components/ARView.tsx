@@ -12,22 +12,7 @@ interface ARViewProps {
 export function ARView({ onScan, onBack }: ARViewProps) {
   const [modelId, setModelId] = useState<string | null>(null)
   const [qrData, setQrData] = useState<any>(null)
-  const lastConfettiTimeRef = useRef<number>(0)
-
-  useEffect(() => {
-    if (modelId && qrData) {
-      const now = Date.now()
-      if (now - lastConfettiTimeRef.current > 5000) {
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#FFD700', '#FF0000', '#008000', '#0000FF']
-        })
-        lastConfettiTimeRef.current = now
-      }
-    }
-  }, [modelId, qrData])
+  const [isMobile, setIsMobile] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -36,6 +21,12 @@ export function ARView({ onScan, onBack }: ARViewProps) {
   const isActiveRef = useRef(true)
   const missCounter = useRef(0)
   const frameSkip = useRef(0)
+
+  // Detectar si es móvil o PC
+  useEffect(() => {
+    const checkMobile = /Mobi|Android/i.test(navigator.userAgent)
+    setIsMobile(checkMobile)
+  }, [])
 
   useEffect(() => {
     isActiveRef.current = true
@@ -47,7 +38,6 @@ export function ARView({ onScan, onBack }: ARViewProps) {
         height: { ideal: 720 }
       }
     }).then(stream => {
-
       if (!isActiveRef.current) {
         stream.getTracks().forEach(track => track.stop())
         return
@@ -64,11 +54,9 @@ export function ARView({ onScan, onBack }: ARViewProps) {
       })
 
       const scan = () => {
-
         if (!isActiveRef.current) return
 
         frameSkip.current++
-
         if (frameSkip.current % 3 !== 0) {
           animationRef.current = requestAnimationFrame(scan)
           return
@@ -95,19 +83,15 @@ export function ARView({ onScan, onBack }: ARViewProps) {
         ctx.drawImage(video, 0, 0, scanWidth, scanHeight)
 
         const imageData = ctx.getImageData(0, 0, scanWidth, scanHeight)
-
-        const code = jsQR(
-          imageData.data,
-          scanWidth,
-          scanHeight,
-          { inversionAttempts: "attemptBoth" }
-        )
+        const code = jsQR(imageData.data, scanWidth, scanHeight, { inversionAttempts: "attemptBoth" })
 
         if (code) {
           if (!modelId) setModelId(code.data)
 
-          const scaleX = video.videoWidth / scanWidth
-          const scaleY = video.videoHeight / scanHeight
+          // Usar el tamaño real del video en pantalla
+          const rect = video.getBoundingClientRect()
+          const scaleX = rect.width / scanWidth
+          const scaleY = rect.height / scanHeight
 
           const scaledLocation = {
             topLeftCorner: {
@@ -139,24 +123,15 @@ export function ARView({ onScan, onBack }: ARViewProps) {
       scan()
     })
 
-    // CLEANUP
     return () => {
       isActiveRef.current = false
-
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = undefined
-      }
-
+      if (animationRef.current) cancelAnimationFrame(animationRef.current)
       if (videoRef.current) {
         videoRef.current.pause()
         videoRef.current.srcObject = null
       }
-
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          track.stop()
-        })
+        streamRef.current.getTracks().forEach(track => track.stop())
         streamRef.current = null
       }
     }
@@ -164,30 +139,30 @@ export function ARView({ onScan, onBack }: ARViewProps) {
 
   const handleBack = () => {
     isActiveRef.current = false
-
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
-      animationRef.current = undefined
-    }
-
+    if (animationRef.current) cancelAnimationFrame(animationRef.current)
     if (videoRef.current) {
       videoRef.current.pause()
       videoRef.current.srcObject = null
     }
-
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
-        track.stop()
-      })
+      streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null
     }
-
     onBack()
+  }
+
+  const handleCelebrate = () => {
+    confetti({
+      particleCount: 200,
+      spread: 100,
+      origin: { y: 0.7 },
+      colors: ['#FFD700', '#FF0000', '#008000', '#0000FF']
+    })
   }
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
-
+      
       <video
         ref={videoRef}
         autoPlay
@@ -203,19 +178,18 @@ export function ARView({ onScan, onBack }: ARViewProps) {
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={1.5} />
         {modelId && qrData && (
-          <Modelo
-            textureId={modelId}
-            qrData={qrData}
-          />
+          <Modelo textureId={modelId} qrData={qrData} />
         )}
       </Canvas>
 
+      {/* Overlay visual */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        <div className="absolute inset-4 border-4 border-yellow-400 shadow-[0_0_60px_rgba(255,215,0,0.5)]" />
+        <div className="absolute inset-4 border-4 border-yellow-400 shadow-[0_0_60px_rgba(255,215,0,0.5)] rounded-2xl" />
         <div className="absolute inset-4 rounded-3xl ring-2 ring-white/10" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/40" />
       </div>
 
+      {/* Botones */}
       <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-6">
         <div className="flex justify-between pointer-events-auto">
           <button
@@ -226,7 +200,7 @@ export function ARView({ onScan, onBack }: ARViewProps) {
           </button>
         </div>
 
-        <div className="flex justify-center pointer-events-auto pb-8">
+        <div className="flex flex-col items-center gap-4 pointer-events-auto pb-8">
           <button
             onClick={() => modelId && onScan(modelId)}
             disabled={!modelId || !qrData}
@@ -234,6 +208,15 @@ export function ARView({ onScan, onBack }: ARViewProps) {
           >
             ⚽
           </button>
+
+          {modelId && qrData && (
+            <button
+              onClick={handleCelebrate}
+              className="px-6 py-3 rounded-full bg-yellow-400 text-black font-bold shadow-lg hover:bg-yellow-500 transition"
+            >
+              ¡Celebrar!
+            </button>
+          )}
         </div>
       </div>
     </div>

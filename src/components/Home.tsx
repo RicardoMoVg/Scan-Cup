@@ -4,9 +4,10 @@ interface HomeProps {
     user: User;
     onScanClick: () => void;
     onViewCollection: () => void;
+    onStartTour: () => void;
 }
 
-export function Home({ user, onScanClick, onViewCollection }: HomeProps) {
+export function Home({ user, onScanClick, onViewCollection, onStartTour }: HomeProps) {
     return (
         <div className="min-h-screen bg-wc-light-bg pb-20">
             <div className="bg-wc-red rounded-b-[40px] pt-16 pb-20 px-6 relative shadow-xl z-0">
@@ -18,6 +19,13 @@ export function Home({ user, onScanClick, onViewCollection }: HomeProps) {
                         <span className="text-white/80 text-sm font-medium">APP OFICIAL</span>
                     </div>
 
+                    <button
+                        onClick={onStartTour}
+                        className="bg-white/20 hover:bg-white/30 text-white font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm transition"
+                        title="¿Cómo funciona?"
+                    >
+                        ?
+                    </button>
                 </div>
 
                 <h1 className="text-4xl font-bold text-white leading-tight mb-2">
@@ -26,6 +34,7 @@ export function Home({ user, onScanClick, onViewCollection }: HomeProps) {
 
                 <div className="absolute -bottom-14 left-1/2 transform -translate-x-1/2 z-10">
                     <button
+                        id="scan-button"
                         onClick={onScanClick}
                         className="w-28 h-28 bg-wc-green-light rounded-full border-4 border-white flex items-center justify-center shadow-xl active:scale-95 transition-transform hover:shadow-2xl"
                     >
@@ -39,7 +48,7 @@ export function Home({ user, onScanClick, onViewCollection }: HomeProps) {
 
             <div className="px-6 mt-20 mb-8">
                 <div className="text-sm text-gray-400 uppercase font-bold tracking-wider mb-4">Actividad Reciente</div>
-                <div className="bg-wc-dark-bg text-white rounded-2xl p-6 shadow-lg flex justify-between items-center relative overflow-hidden">
+                <div id="recent-activity" className="bg-wc-dark-bg text-white rounded-2xl p-6 shadow-lg flex justify-between items-center relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-600 rounded-full blur-3xl opacity-20"></div>
 
                     <div className="flex-1 flex flex-col items-center justify-center z-10">
@@ -55,7 +64,7 @@ export function Home({ user, onScanClick, onViewCollection }: HomeProps) {
             </div>
 
             <div className="px-6">
-                <button onClick={onViewCollection} className="w-full py-4 bg-wc-red text-white font-bold rounded-xl hover:bg-red-700 transition shadow-lg">
+                <button id="view-collection-btn" onClick={onViewCollection} className="w-full py-4 bg-wc-red text-white font-bold rounded-xl hover:bg-red-700 transition shadow-lg">
                     Ver Mi Colección
                 </button>
             </div>
