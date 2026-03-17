@@ -178,7 +178,13 @@ export function ARView({ onScan, onBack }: ARViewProps) {
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={1.5} />
         {modelId && qrData && (
-          <Modelo textureId={modelId} qrData={qrData} />
+          <Modelo
+            textureId={`textV2/${modelId}`}
+            frontLayers={['1', '2', '3']}
+            backSuffix="4"
+            parallax={true}
+            qrData={qrData}
+          />
         )}
       </Canvas>
 
