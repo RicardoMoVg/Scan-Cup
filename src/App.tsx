@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useTour } from './hooks/useTour'
 import { mockUser, mockCards } from './data/mock'
 import { BottomNav } from './components/BottomNav'
@@ -11,6 +11,8 @@ import { Trivia } from './components/Trivia'
 import { ScanResult } from './components/ScanResult'
 import { ShowVideos } from './components/ShowVideos'
 import { EditVideos } from './components/EditVideos'
+import { generateTriviaQuestions, playerNameMap } from './utils/triviaApi'
+import type { TriviaQuestion, PlayerInfo } from './utils/triviaApi'
 
 function App() {
   const [view, setView] = useState<
@@ -31,6 +33,32 @@ function App() {
 
   // guarda el modelId escaneado
   const [scannedModelId, setScannedModelId] = useState<string | null>(null)
+
+  // estado de la trivia generada por IA
+  const [triviaQuestions, setTriviaQuestions] = useState<TriviaQuestion[]>([])
+  const [triviaLoading, setTriviaLoading] = useState(false)
+  const [triviaError, setTriviaError] = useState<string | null>(null)
+  const [triviaPlayerInfo, setTriviaPlayerInfo] = useState<PlayerInfo>(playerNameMap['ochoa2026'])
+  const startTriviaLock = useRef(false)
+
+  const handleStartTrivia = () => {
+    if (startTriviaLock.current) return
+    startTriviaLock.current = true
+
+    const playerInfo = (scannedModelId && playerNameMap[scannedModelId]) ? playerNameMap[scannedModelId] : playerNameMap['ochoa2026']
+    setTriviaPlayerInfo(playerInfo)
+    setTriviaQuestions([])
+    setTriviaError(null)
+    setTriviaLoading(true)
+    setView('trivia')
+    generateTriviaQuestions(playerInfo.name)
+      .then(setTriviaQuestions)
+      .catch((err: Error) => setTriviaError(err.message))
+      .finally(() => {
+        setTriviaLoading(false)
+        startTriviaLock.current = false
+      })
+  }
 
   const handleNavChange = (newView: typeof view) => {
     setView(newView)
@@ -90,7 +118,7 @@ function App() {
               setScannedModelId(null) // limpia
               setView('home')
             }}
-            onStartTrivia={() => setView('trivia')}
+            onStartTrivia={handleStartTrivia}
           />
         )
 
@@ -114,7 +142,16 @@ function App() {
         )
 
       case 'trivia':
-        return <Trivia modelId={scannedModelId} />
+        return (
+          <Trivia
+            modelId={scannedModelId}
+            playerInfo={triviaPlayerInfo}
+            questions={triviaQuestions}
+            isLoading={triviaLoading}
+            error={triviaError}
+            onRetry={handleStartTrivia}
+          />
+        )
 
       case 'market':
         return (
