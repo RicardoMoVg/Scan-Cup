@@ -7,7 +7,7 @@ interface EditVideosProps {
 }
 
 export function EditVideos({ video, onBack }: EditVideosProps) {
-    const videoUrl = video?.publicId ? cld.video(video.publicId).toURL() : video?.url;
+    const videoUrl = video?.publicId ? cld.video(video.publicId).format('mp4').toURL() : (video as any)?.url;
     const [activeFilter, setActiveFilter] = useState('none');
     const [pixelSize, setPixelSize] = useState(8);
 

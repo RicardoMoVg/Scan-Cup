@@ -38,7 +38,7 @@ function App() {
 
   const fetchUserCollection = useCallback(async (token: string) => {
     try {
-      const res = await fetch('http://localhost:5000/api/collection', {
+      const res = await fetch('/api/collection', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -170,7 +170,7 @@ function App() {
               if (cardId && currentUser) {
                 try {
                   const token = localStorage.getItem('auth_token');
-                  const res = await fetch('http://localhost:5000/api/collection/add', {
+                  const res = await fetch('/api/collection/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ cardId })
@@ -234,7 +234,7 @@ function App() {
                 try {
                   // Guardar carta en la colección
                   if (cardId) {
-                    const cardRes = await fetch('http://localhost:5000/api/collection/add', {
+                    const cardRes = await fetch('/api/collection/add', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                       body: JSON.stringify({ cardId })
@@ -248,7 +248,7 @@ function App() {
                     }
                   }
                   // Guardar puntaje de trivia
-                  const scoreRes = await fetch('http://localhost:5000/api/trivia/save-score', {
+                  const scoreRes = await fetch('/api/trivia/save-score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ pointsEarned: score * 100 })

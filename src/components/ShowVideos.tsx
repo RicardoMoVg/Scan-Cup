@@ -10,47 +10,45 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
     const videos = [
         {
             id: 1,
-            title: 'Gol de Messi',
-            duration: 'Valioso',
-            thumbnail: 'https://images.unsplash.com/photo-1517466787929-bc90951d6dbd?q=80&w=2670',
-            url: "/videos/Messi.mp4",
-            // publicId: 'Messi'
+            title: 'Golazo de Son Heung-Min',
+            duration: 'Corea',
+            thumbnail: '',
+            publicId: 'Golazo_de_Son_Heung-Min_México_no_lo_vio_venir_Mexico_vs_Corea_eF8XL0Bk9O0_n4sxy8'
         },
         {
             id: 2,
-            title: 'Gol de Iniesta',
-            duration: 'Mundial',
-            thumbnail: 'https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=2564',
-            url: "/videos/Gol de Andres Iniesta-España Campeon [6-EqlQMPmDI].mp4",
-            // publicId: 'Gol_de_Andres_Iniesta'
+            title: 'Gol de Neymar',
+            duration: 'Brasil',
+            thumbnail: '',
+            publicId: 'GOL_DO_NEYMAR_BRASIL_X_CROÁCIA_-_COPA_DO_MUNDO_2022_-_GLOBO_mPrBGrizkQM_e3c6sl'
         },
         {
             id: 3,
-            title: 'Jugada Destacada 1',
-            duration: 'Épico',
+            title: 'Gol de Pulisic',
+            duration: 'EEUU',
             thumbnail: '',
-            url: "/videos/Video 3.mp4"
+            publicId: 'Christian_Pulisic_s_Goal_v_IR_Iran_2022_FIFA_World_Cup_HPg5hthnQ5E_kwnqon'
         },
         {
             id: 4,
-            title: 'Momento Clave',
-            duration: 'Increíble',
+            title: 'Gol de Kubo',
+            duration: 'Japón',
             thumbnail: '',
-            url: "/videos/Video 4.mp4"
+            publicId: 'TAKEFUSA_KUBO_-_INSOLITO_GOL_JAPON_HOY_TV_ZmEZt5TsRw4_qsxs6t'
         },
         {
             id: 5,
-            title: 'Gran Atajada',
-            duration: 'Salvador',
+            title: 'Empate de Mbappé',
+            duration: 'Francia',
             thumbnail: '',
-            url: "/videos/Video 5.mp4"
+            publicId: 'MBAPPE_EMPATA_EL_PARTIDO_VS_ARGENTINA_Argentina_2_vs_Francia_2_GBoh2c86Fho_ed8x3g'
         },
         {
             id: 6,
-            title: 'Tiro Libre',
-            duration: 'Precisión',
+            title: 'Empate de Cristiano',
+            duration: 'Portugal',
             thumbnail: '',
-            url: "/videos/Video 6.mp4"
+            publicId: 'Relato_de_Mariano_Closs_Gol_de_empate_de_tiro_libre_de_Cristiano_Ronaldo_739gFc2zg78_zhkarj'
         }
     ];
 
@@ -80,6 +78,7 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
                             {(video as any).publicId ? (
                                 <AdvancedVideo
                                     cldVid={cld.video((video as any).publicId)}
+                                    poster={cld.video((video as any).publicId).format('jpg').toURL()}
                                     className="w-full h-full object-cover"
                                     muted
                                     playsInline
@@ -91,7 +90,7 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
                                 />
                             ) : (
                                 <video
-                                    src={video.url}
+                                    src={(video as any).url}
                                     className="w-full h-full object-cover"
                                     muted
                                     playsInline
