@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { cld } from '../utils/cloudinary';
 
 interface EditVideosProps {
     video: any;
@@ -6,6 +7,7 @@ interface EditVideosProps {
 }
 
 export function EditVideos({ video, onBack }: EditVideosProps) {
+    const videoUrl = video?.publicId ? cld.video(video.publicId).toURL() : video?.url;
     const [activeFilter, setActiveFilter] = useState('none');
     const [pixelSize, setPixelSize] = useState(8);
 
@@ -119,12 +121,13 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
 
             {/* Video Preview Area */}
             <div className="flex-1 relative flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-gray-800/20 via-wc-dark-bg to-wc-dark-bg">
-                {video?.url ? (
+                {videoUrl ? (
                     <div className="w-full max-w-3xl relative flex flex-col items-center shadow-2xl rounded-2xl border border-gray-800 bg-black">
                         <div className="relative w-full aspect-video bg-black overflow-hidden rounded-t-2xl group flex justify-center items-center">
                             <video
                                 ref={videoRef}
-                                src={video.url}
+                                src={videoUrl}
+                                crossOrigin="anonymous"
                                 autoPlay
                                 loop
                                 playsInline

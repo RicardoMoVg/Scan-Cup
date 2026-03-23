@@ -5,7 +5,7 @@ import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 
 /** Separación en Z entre capas de parallax (unidades del modelo) */
-const PARALLAX_Z_GAP = 0.18
+const PARALLAX_Z_GAP = 0.04
 
 interface ModeloProps {
   textureId: string

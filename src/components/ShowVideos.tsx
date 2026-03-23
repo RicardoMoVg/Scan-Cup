@@ -1,3 +1,6 @@
+import { AdvancedVideo } from '@cloudinary/react';
+import { cld } from '../utils/cloudinary';
+
 interface ShowVideosProps {
     onVideoSelect: (video: any) => void;
     onBack: () => void;
@@ -10,14 +13,16 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
             title: 'Gol de Messi',
             duration: 'Valioso',
             thumbnail: 'https://images.unsplash.com/photo-1517466787929-bc90951d6dbd?q=80&w=2670',
-            url: "/videos/Messi.mp4"
+            url: "/videos/Messi.mp4",
+            // publicId: 'Messi'
         },
         {
             id: 2,
             title: 'Gol de Iniesta',
             duration: 'Mundial',
             thumbnail: 'https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=2564',
-            url: "/videos/Gol de Andres Iniesta-España Campeon [6-EqlQMPmDI].mp4"
+            url: "/videos/Gol de Andres Iniesta-España Campeon [6-EqlQMPmDI].mp4",
+            // publicId: 'Gol_de_Andres_Iniesta'
         },
         {
             id: 3,
@@ -72,17 +77,31 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
                         className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 cursor-pointer transform hover:scale-[1.02] transition-all duration-300 group"
                     >
                         <div className="relative aspect-video bg-gray-200 flex items-center justify-center overflow-hidden">
-                            <video
-                                src={video.url}
-                                className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                onMouseOver={e => e.currentTarget.play()}
-                                onMouseOut={e => {
-                                    e.currentTarget.pause();
-                                    e.currentTarget.currentTime = 0;
-                                }}
-                            />
+                            {(video as any).publicId ? (
+                                <AdvancedVideo
+                                    cldVid={cld.video((video as any).publicId)}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    playsInline
+                                    onMouseOver={(e: any) => e.currentTarget.play()}
+                                    onMouseOut={(e: any) => {
+                                        e.currentTarget.pause();
+                                        e.currentTarget.currentTime = 0;
+                                    }}
+                                />
+                            ) : (
+                                <video
+                                    src={video.url}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    playsInline
+                                    onMouseOver={e => e.currentTarget.play()}
+                                    onMouseOut={e => {
+                                        e.currentTarget.pause();
+                                        e.currentTarget.currentTime = 0;
+                                    }}
+                                />
+                            )}
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300" />
                         </div>
                         <div className="p-4 flex justify-between items-center">

@@ -11,9 +11,11 @@ import { Trivia } from './components/Trivia'
 import { ScanResult } from './components/ScanResult'
 import { ShowVideos } from './components/ShowVideos'
 import { EditVideos } from './components/EditVideos'
+import { Login } from './components/Login'
 
 function App() {
   const [view, setView] = useState<
+    | 'login'
     | 'home'
     | 'scan'
     | 'user-collection'
@@ -24,9 +26,10 @@ function App() {
     | 'scan-result'
     | 'show-videos'
     | 'edit-video'
-  >('home')
+  >('login')
 
   const [selectedVideo, setSelectedVideo] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const { startTour } = useTour()
 
   // guarda el modelId escaneado
@@ -38,10 +41,31 @@ function App() {
 
   const renderContent = () => {
     switch (view) {
+      case 'login':
+        return (
+          <Login 
+            onLogin={(token, dbUser) => {
+               localStorage.setItem('auth_token', token);
+               const mappedUser = {
+                 id: dbUser.UserId?.toString() || dbUser.id || mockUser.id,
+                 name: dbUser.Name || dbUser.name || 'Usuario',
+                 email: dbUser.Email || dbUser.email || '',
+                 avatarUrl: dbUser.AvatarUrl || dbUser.avatarUrl || null,
+                 level: dbUser.Level ?? dbUser.level ?? 1,
+                 points: dbUser.Points ?? dbUser.points ?? 0,
+                 rank: dbUser.Rank ?? dbUser.rank,
+                 collectionCount: dbUser.collectionCount || 0
+               };
+               setCurrentUser(mappedUser);
+               setView('home');
+            }}
+          />
+        )
+
       case 'home':
         return (
           <Home
-            user={mockUser}
+            user={currentUser || mockUser}
             onScanClick={() => setView('scan')}
             onViewCollection={() => setView('user-collection')}
             onStartTour={startTour}
@@ -62,7 +86,7 @@ function App() {
       case 'profile':
         return (
           <UserProfile
-            user={mockUser}
+            user={currentUser || mockUser}
             onBack={() => setView('home')}
           />
         )
@@ -132,7 +156,7 @@ function App() {
     <div className="font-heading bg-wc-light-bg min-h-screen">
       {renderContent()}
 
-      {view !== 'scan' && view !== 'scan-result' && (
+      {view !== 'scan' && view !== 'login' && view !== 'scan-result' && (
         <BottomNav
           currentView={view}
           onChangeView={handleNavChange}
