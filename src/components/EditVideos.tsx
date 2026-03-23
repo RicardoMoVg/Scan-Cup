@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { cld } from '../utils/cloudinary';
 
 interface EditVideosProps {
     video: any;
@@ -6,12 +7,58 @@ interface EditVideosProps {
 }
 
 export function EditVideos({ video, onBack }: EditVideosProps) {
+    const videoUrl = video?.publicId ? cld.video(video.publicId).toURL() : video?.url;
     const [activeFilter, setActiveFilter] = useState('none');
+    const [pixelSize, setPixelSize] = useState(8);
 
     const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animFrameRef = useRef<number>(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        if (activeFilter !== 'pixelate') {
+            cancelAnimationFrame(animFrameRef.current);
+            return;
+        }
+
+        const renderPixelated = () => {
+            if (!video || !canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const size = Math.max(1, pixelSize);
+
+            // Dibuja pequeño (reducido por el factor de píxel)
+            ctx.drawImage(video, 0, 0, Math.ceil(w / size), Math.ceil(h / size));
+
+            // Escala de vuelta sin suavizado → efecto pixelado
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(canvas, 0, 0, Math.ceil(w / size), Math.ceil(h / size), 0, 0, w, h);
+
+            animFrameRef.current = requestAnimationFrame(renderPixelated);
+        };
+
+        animFrameRef.current = requestAnimationFrame(renderPixelated);
+        return () => cancelAnimationFrame(animFrameRef.current);
+    }, [activeFilter, pixelSize]);
+
+    // Sincroniza el tamaño del canvas con el video
+    const handleLoadedMetadata = () => {
+        if (videoRef.current && canvasRef.current) {
+            canvasRef.current.width = videoRef.current.videoWidth || 1280;
+            canvasRef.current.height = videoRef.current.videoHeight || 720;
+            setDuration(videoRef.current.duration);
+        }
+    };
 
     const formatTime = (time: number) => {
         if (!time || isNaN(time)) return '0:00';
@@ -23,12 +70,6 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
     const handleTimeUpdate = () => {
         if (videoRef.current) {
             setCurrentTime(videoRef.current.currentTime);
-        }
-    };
-
-    const handleLoadedMetadata = () => {
-        if (videoRef.current) {
-            setDuration(videoRef.current.duration);
         }
     };
 
@@ -52,32 +93,16 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
     };
 
     const filters = [
-        { id: 'none', label: 'Normal', style: {} },
-        { id: 'pixelate', label: 'Pixelado', style: { filter: 'url(#pixelate)' } }, // Note: SVG filter needs to be defined
-        { id: 'vintage', label: 'Vintage', style: { filter: 'sepia(0.5) contrast(1.2)' } },
-        { id: 'blur', label: 'Desenfoque', style: { filter: 'blur(4px)' } },
-        { id: 'thermal', label: 'Térmica', style: { filter: 'invert(1) hue-rotate(180deg) contrast(1.5)' } },
-        { id: 'color', label: 'Color', style: { filter: 'saturate(2) contrast(1.1) hue-rotate(15deg)' } },
+        { id: 'none', label: 'Normal', style: {}, icon: '/Iconos/normal.png' },
+        { id: 'pixelate', label: 'Pixelado', style: { imageRendering: 'pixelated' as const, filter: 'contrast(1.1)' }, icon: '/Iconos/pixelado.png' },
+        { id: 'vintage', label: 'Vintage', style: { filter: 'sepia(0.5) contrast(1.2)' }, icon: '/Iconos/vintage.png' },
+        { id: 'blur', label: 'Difuminado', style: { filter: 'blur(4px)' }, icon: '/Iconos/difuminado.png' },
+        { id: 'thermal', label: 'Aberración', style: { filter: 'invert(1) hue-rotate(180deg) contrast(1.5)' }, icon: '/Iconos/aberración.png' },
+        { id: 'color', label: 'Color', style: { filter: 'saturate(2) contrast(1.1) hue-rotate(15deg)' }, icon: '/Iconos/color.png' },
     ];
-
-    // SVG Filter definition for pixelate effect
-    const SvgFilters = () => (
-        <svg className="hidden">
-            <defs>
-                <filter id="pixelate" x="0" y="0">
-                    <feFlood x="2" y="2" height="1" width="1" />
-                    <feComposite width="4" height="4" />
-                    <feTile result="a" />
-                    <feComposite in="SourceGraphic" in2="a" operator="in" />
-                    <feMorphology operator="dilate" radius="2" />
-                </filter>
-            </defs>
-        </svg>
-    );
 
     return (
         <div className="min-h-screen bg-wc-dark-bg flex flex-col font-heading">
-            <SvgFilters />
 
             {/* Header */}
             <div className="relative p-6 z-20 flex justify-between items-center bg-wc-dark-bg/95 border-b border-gray-800">
@@ -96,12 +121,13 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
 
             {/* Video Preview Area */}
             <div className="flex-1 relative flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-gray-800/20 via-wc-dark-bg to-wc-dark-bg">
-                {video?.url ? (
+                {videoUrl ? (
                     <div className="w-full max-w-3xl relative flex flex-col items-center shadow-2xl rounded-2xl border border-gray-800 bg-black">
                         <div className="relative w-full aspect-video bg-black overflow-hidden rounded-t-2xl group flex justify-center items-center">
                             <video
                                 ref={videoRef}
-                                src={video.url}
+                                src={videoUrl}
+                                crossOrigin="anonymous"
                                 autoPlay
                                 loop
                                 playsInline
@@ -109,7 +135,13 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                                 onLoadedMetadata={handleLoadedMetadata}
                                 onClick={togglePlay}
                                 className="w-full h-full object-cover transition-all duration-500 ease-in-out cursor-pointer"
-                                style={filters.find(f => f.id === activeFilter)?.style}
+                                style={activeFilter === 'pixelate' ? { visibility: 'hidden' } : filters.find(f => f.id === activeFilter)?.style}
+                            />
+                            <canvas
+                                ref={canvasRef}
+                                onClick={togglePlay}
+                                className="absolute inset-0 w-full h-full object-cover cursor-pointer"
+                                style={{ display: activeFilter === 'pixelate' ? 'block' : 'none', imageRendering: 'pixelated' }}
                             />
                             {/* Play/Pause Overlay */}
                             <div
@@ -160,37 +192,53 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                 )}
             </div>
 
-            {/* Filter Controls */}
-            <div className="bg-[#111] pb-10 pt-6 border-t border-gray-800 mt-auto">
-                <div className="flex items-center justify-between px-8 mb-6">
-                    <div className="text-gray-400 text-xs font-black uppercase tracking-widest">
-                        Efectos Visuales
-                    </div>
-                    <div className="h-px bg-gray-800 flex-1 ml-4"></div>
+            {/* Pixelate intensity slider */}
+            {activeFilter === 'pixelate' && (
+                <div className="px-8 pb-2 flex items-center gap-4">
+                    <span className="text-gray-400 text-xs uppercase font-black tracking-widest shrink-0">Píxeles</span>
+                    <input
+                        type="range"
+                        min={2}
+                        max={32}
+                        step={1}
+                        value={pixelSize}
+                        onChange={e => setPixelSize(Number(e.target.value))}
+                        className="flex-1 accent-wc-red"
+                    />
+                    <span className="text-wc-red text-xs font-black w-6 text-right">{pixelSize}</span>
                 </div>
+            )}
 
-                <div className="flex overflow-x-auto px-8 space-x-6 pb-4 custom-scrollbar snap-x">
-                    {filters.map((filter) => (
-                        <button
-                            key={filter.id}
-                            onClick={() => setActiveFilter(filter.id)}
-                            className={`shrink-0 flex flex-col items-center space-y-3 group snap-center transition-all ${activeFilter === filter.id ? 'opacity-100' : 'opacity-50 hover:opacity-100'
-                                }`}
-                        >
-                            <div className={`w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all duration-300 p-1 ${activeFilter === filter.id ? 'border-wc-red scale-110 shadow-[0_0_20px_rgba(230,57,70,0.3)]' : 'border-transparent group-hover:border-white/20 hover:scale-105 bg-gray-800/50'
-                                }`}>
-                                <div className="w-full h-full rounded-xl bg-gray-900 overflow-hidden relative flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-linear-to-tr from-gray-800 to-gray-700 opacity-50"></div>
-                                    <span className="text-[10px] text-gray-400 uppercase font-bold relative z-10 tracking-wider">Fx</span>
-                                </div>
+            {/* Filter Controls */}
+            <div className="flex overflow-x-auto px-8 space-x-6 pb-4 custom-scrollbar snap-x">
+                {filters.map((filter) => (
+                    <button
+                        key={filter.id}
+                        onClick={() => setActiveFilter(filter.id)}
+                        className={`shrink-0 flex flex-col items-center space-y-3 group snap-center transition-all ${activeFilter === filter.id ? 'opacity-100' : 'opacity-50 hover:opacity-100'
+                            }`}
+                    >
+                        <div className={`w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all duration-300 p-1 ${activeFilter === filter.id
+                            ? 'border-wc-red scale-110 shadow-[0_0_20px_rgba(230,57,70,0.3)]'
+                            : 'border-transparent group-hover:border-white/20 hover:scale-105 bg-gray-800/50'
+                            }`}>
+                            <div
+                                className="w-full h-full rounded-xl overflow-hidden relative flex items-center justify-center bg-gray-900"
+                            >
+                                <img
+                                    src={filter.icon}
+                                    alt={filter.label}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
-                            <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${activeFilter === filter.id ? 'text-wc-red' : 'text-gray-500'
-                                }`}>
-                                {filter.label}
-                            </span>
-                        </button>
-                    ))}
-                </div>
+                        </div>
+
+                        <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${activeFilter === filter.id ? 'text-wc-red' : 'text-gray-500'
+                            }`}>
+                            {filter.label}
+                        </span>
+                    </button>
+                ))}
             </div>
         </div>
     );

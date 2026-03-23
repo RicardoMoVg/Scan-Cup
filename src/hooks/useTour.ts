@@ -62,7 +62,7 @@ export function useTour() {
           element: '#nav-show-videos',
           popover: {
             title: 'Videos',
-            description: 'Mira los videos exclusivos asociados a tus cartas. ¡Contenido único por jugador!',
+            description: 'Mira los videos de las mejores jugadas. ¡Los mejores momentos de los mundiales!',
             side: 'top',
             align: 'center',
           },

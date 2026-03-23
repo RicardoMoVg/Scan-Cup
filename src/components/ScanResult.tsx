@@ -5,6 +5,7 @@ import { Canvas } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import Modelo from "./Modelo"
 
+
 interface ScanResultProps {
   card: Card
   modelId?: string | null
@@ -107,7 +108,13 @@ export function ScanResult({
                       position={[0, 0, 0]}
                       rotation={[50.2, -26.5, 49.85]}
                     >
-                      <Modelo textureId={modelId} preview={true} />
+                      <Modelo
+                        textureId={`textV2/${modelId}`}
+                        frontLayers={['1', '2', '3']}
+                        backSuffix="4"
+                        parallax={true}
+                        preview={true}
+                      />
                     </group>
 
                     <OrbitControls enableZoom enablePan={false} />
