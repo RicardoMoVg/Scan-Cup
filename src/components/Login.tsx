@@ -42,7 +42,7 @@ export function Login({ onLogin }: LoginProps) {
 
     return (
         <div className="min-h-screen bg-wc-light-bg pb-20 flex flex-col font-heading">
-            <div className="bg-wc-red rounded-b-[40px] pt-16 pb-20 px-8 relative shadow-xl z-10 shrink-0">
+            <div className="bg-wc-red rounded-b-[40px] pt-16 pb-20 px-8 relative shadow-xl z-10 shrink-0 overflow-hidden">
                 <div className="flex items-center space-x-2 mb-8">
                     <div className="bg-white/20 p-2 rounded-full">
                         <span className="text-white font-bold text-sm">⚽ WC26</span>

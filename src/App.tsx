@@ -285,7 +285,7 @@ function App() {
   }
 
   return (
-    <div className="font-heading bg-wc-light-bg min-h-screen">
+    <div className="font-heading bg-wc-light-bg min-h-screen overflow-x-hidden">
       {renderContent()}
 
       {view !== 'scan' && view !== 'login' && view !== 'scan-result' && (
