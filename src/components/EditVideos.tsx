@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { cld } from '../utils/cloudinary';
 
 interface EditVideosProps {
     video: any;
@@ -7,7 +6,7 @@ interface EditVideosProps {
 }
 
 export function EditVideos({ video, onBack }: EditVideosProps) {
-    const videoUrl = video?.publicId ? cld.video(video.publicId).format('mp4').toURL() : (video as any)?.url;
+    const videoUrl = video?.url;
     const [activeFilter, setActiveFilter] = useState('none');
     const [pixelSize, setPixelSize] = useState(8);
 
@@ -126,9 +125,9 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                         <div className="relative w-full aspect-video bg-black overflow-hidden rounded-t-2xl group flex justify-center items-center">
                             <video
                                 ref={videoRef}
-                                src={videoUrl}
-                                crossOrigin="anonymous"
+                                src={`${videoUrl}#t=0.001`}
                                 autoPlay
+                                muted
                                 loop
                                 playsInline
                                 onTimeUpdate={handleTimeUpdate}

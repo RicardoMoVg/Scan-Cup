@@ -1,54 +1,149 @@
-import { AdvancedVideo } from '@cloudinary/react';
-import { cld } from '../utils/cloudinary';
+import { useRef } from 'react';
+
+interface Video {
+    id: number;
+    title: string;
+    country: string;
+    url: string;
+}
 
 interface ShowVideosProps {
-    onVideoSelect: (video: any) => void;
+    onVideoSelect: (video: Video) => void;
     onBack: () => void;
 }
 
+function VideoCard({ video, onSelect }: { video: Video; onSelect: () => void }) {
+    const ref = useRef<HTMLVideoElement>(null);
+
+    const handleLoadedMetadata = () => {
+        if (ref.current) ref.current.currentTime = 1;
+    };
+
+    const handleMouseOver = () => {
+        ref.current?.play();
+    };
+
+    const handleMouseOut = () => {
+        if (ref.current) {
+            ref.current.pause();
+            ref.current.currentTime = 1;
+        }
+    };
+
+    return (
+        <div
+            onClick={onSelect}
+            className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 cursor-pointer transform hover:scale-[1.02] transition-all duration-300 group"
+        >
+            <div className="relative aspect-video bg-gray-900 overflow-hidden">
+                <video
+                    ref={ref}
+                    src={`${video.url}#t=0.001`}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onMouseOver={handleMouseOver}
+                    onMouseOut={handleMouseOut}
+                />
+                {/* Play icon overlay */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity duration-300">
+                    <div className="w-12 h-12 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div className="p-4 flex justify-between items-center">
+                <div>
+                    <h3 className="font-bold text-gray-800 text-lg leading-tight">{video.title}</h3>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-1">{video.country}</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
-    const videos = [
+    const videos: Video[] = [
         {
             id: 1,
-            title: 'Golazo de Son Heung-Min',
-            duration: 'Corea',
-            thumbnail: '',
-            publicId: 'Golazo_de_Son_Heung-Min_México_no_lo_vio_venir_Mexico_vs_Corea_eF8XL0Bk9O0_n4sxy8'
+            title: 'Gol de Cristiano Ronaldo',
+            country: 'Portugal',
+            url: '/videos/(Relato de Mariano Closs) Gol de empate  de tiro libre de Cristiano Ronaldo [739gFc2zg78].mp4'
         },
         {
             id: 2,
-            title: 'Gol de Neymar',
-            duration: 'Brasil',
-            thumbnail: '',
-            publicId: 'GOL_DO_NEYMAR_BRASIL_X_CROÁCIA_-_COPA_DO_MUNDO_2022_-_GLOBO_mPrBGrizkQM_e3c6sl'
+            title: 'Gol de Pulisic',
+            country: 'EEUU',
+            url: '/videos/Christian Pulisic_s Goal v IR Iran ｜ 2022 FIFA World Cup [HPg5hthnQ5E].mp4'
         },
         {
             id: 3,
-            title: 'Gol de Pulisic',
-            duration: 'EEUU',
-            thumbnail: '',
-            publicId: 'Christian_Pulisic_s_Goal_v_IR_Iran_2022_FIFA_World_Cup_HPg5hthnQ5E_kwnqon'
+            title: 'Gol de Neymar',
+            country: 'Brasil',
+            url: '/videos/GOL DO NEYMAR BRASIL X CROÁCIA - COPA DO MUNDO 2022 - GLOBO [mPrBGrizkQM].webm'
         },
         {
             id: 4,
-            title: 'Gol de Kubo',
-            duration: 'Japón',
-            thumbnail: '',
-            publicId: 'TAKEFUSA_KUBO_-_INSOLITO_GOL_JAPON_HOY_TV_ZmEZt5TsRw4_qsxs6t'
+            title: 'Gol de Iniesta',
+            country: 'España',
+            url: '/videos/Gol de Andres Iniesta-España Campeon [6-EqlQMPmDI].mp4'
         },
         {
             id: 5,
-            title: 'Empate de Mbappé',
-            duration: 'Francia',
-            thumbnail: '',
-            publicId: 'MBAPPE_EMPATA_EL_PARTIDO_VS_ARGENTINA_Argentina_2_vs_Francia_2_GBoh2c86Fho_ed8x3g'
+            title: 'Golazo de Son Heung-Min',
+            country: 'Corea',
+            url: '/videos/Golazo de Son Heung-Min México no lo vio venir  ｜ Mexico vs Corea [eF8XL0Bk9O0].mp4'
         },
         {
             id: 6,
-            title: 'Empate de Cristiano',
-            duration: 'Portugal',
-            thumbnail: '',
-            publicId: 'Relato_de_Mariano_Closs_Gol_de_empate_de_tiro_libre_de_Cristiano_Ronaldo_739gFc2zg78_zhkarj'
+            title: 'Empate de Mbappé',
+            country: 'Francia',
+            url: '/videos/MBAPPE  EMPATA EL PARTIDO VS ARGENTINA ｜ Argentina 2 vs Francia 2 [GBoh2c86Fho].mp4'
+        },
+        {
+            id: 7,
+            title: 'Gol de Messi',
+            country: 'Argentina',
+            url: '/videos/Messi.mp4'
+        },
+        {
+            id: 8,
+            title: 'Gol de Kubo',
+            country: 'Japón',
+            url: '/videos/TAKEFUSA KUBO - INSOLITO GOL  ⧸  JAPON HOY TV [ZmEZt5TsRw4].mp4'
+        },
+        {
+            id: 9,
+            title: 'Momento Épico 3',
+            country: 'Copa Mundial',
+            url: '/videos/Video 3.mp4'
+        },
+        {
+            id: 10,
+            title: 'Momento Épico 4',
+            country: 'Copa Mundial',
+            url: '/videos/Video 4.mp4'
+        },
+        {
+            id: 11,
+            title: 'Momento Épico 5',
+            country: 'Copa Mundial',
+            url: '/videos/Video 5.mp4'
+        },
+        {
+            id: 12,
+            title: 'Momento Épico 6',
+            country: 'Copa Mundial',
+            url: '/videos/Video 6.mp4'
         }
     ];
 
@@ -69,53 +164,11 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
 
             <div className="p-6 space-y-6">
                 {videos.map((video) => (
-                    <div
+                    <VideoCard
                         key={video.id}
-                        onClick={() => onVideoSelect(video)}
-                        className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 cursor-pointer transform hover:scale-[1.02] transition-all duration-300 group"
-                    >
-                        <div className="relative aspect-video bg-gray-200 flex items-center justify-center overflow-hidden">
-                            {(video as any).publicId ? (
-                                <AdvancedVideo
-                                    cldVid={cld.video((video as any).publicId)}
-                                    poster={cld.video((video as any).publicId).format('jpg').toURL()}
-                                    className="w-full h-full object-cover"
-                                    muted
-                                    playsInline
-                                    onMouseOver={(e: any) => e.currentTarget.play()}
-                                    onMouseOut={(e: any) => {
-                                        e.currentTarget.pause();
-                                        e.currentTarget.currentTime = 0;
-                                    }}
-                                />
-                            ) : (
-                                <video
-                                    src={(video as any).url}
-                                    className="w-full h-full object-cover"
-                                    muted
-                                    playsInline
-                                    onMouseOver={e => e.currentTarget.play()}
-                                    onMouseOut={e => {
-                                        e.currentTarget.pause();
-                                        e.currentTarget.currentTime = 0;
-                                    }}
-                                />
-                            )}
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300" />
-                        </div>
-                        <div className="p-4 flex justify-between items-center">
-                            <div>
-                                <h3 className="font-bold text-gray-800 text-lg leading-tight">{video.title}</h3>
-                                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-1">Copa Mundial 2022</p>
-                            </div>
-                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
+                        video={video}
+                        onSelect={() => onVideoSelect(video)}
+                    />
                 ))}
             </div>
         </div>
