@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useTour } from './hooks/useTour'
 import { mockUser, mockCards } from './data/mock'
+import type { Card } from './types'
 import { BottomNav } from './components/BottomNav'
 import { Home } from './components/Home'
 import { UserCollection } from './components/UserCollection'
@@ -11,7 +12,7 @@ import { Trivia } from './components/Trivia'
 import { ScanResult } from './components/ScanResult'
 import { ShowVideos } from './components/ShowVideos'
 import { EditVideos } from './components/EditVideos'
-import { generateTriviaQuestions, playerNameMap } from './utils/triviaApi'
+import { generateTriviaQuestions, playerNameMap, modelToCardId } from './utils/triviaApi'
 import type { TriviaQuestion, PlayerInfo } from './utils/triviaApi'
 import { Login } from './components/Login'
 
@@ -32,7 +33,35 @@ function App() {
 
   const [selectedVideo, setSelectedVideo] = useState<any>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [userCards, setUserCards] = useState<Card[]>(mockCards)
   const { startTour } = useTour()
+
+  const fetchUserCollection = useCallback(async (token: string) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/collection', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        const cards: Card[] = data.cards.map((c: any) => ({
+          id: c.CardId,
+          name: c.Name,
+          description: c.Description || '',
+          imageUrl: c.ImageUrl || `/textures/textV2/${c.CardId.toLowerCase().replace('-', '')}_1.png`,
+          country: c.Country,
+          position: c.Position,
+          stats: { speed: c.StatSpeed, shooting: c.StatShooting, power: c.StatPower },
+          rarity: c.Rarity as 'common' | 'rare' | 'legendary',
+          isCollected: c.IsCollected === 1 || c.IsCollected === true,
+        }))
+        setUserCards(cards)
+        return cards.filter(c => c.isCollected).length
+      }
+    } catch (err) {
+      console.error('Error al cargar colección:', err)
+    }
+    return 0
+  }, [])
 
   // guarda el modelId escaneado
   const [scannedModelId, setScannedModelId] = useState<string | null>(null)
@@ -71,9 +100,10 @@ function App() {
     switch (view) {
       case 'login':
         return (
-          <Login 
-            onLogin={(token, dbUser) => {
+          <Login
+            onLogin={async (token, dbUser) => {
                localStorage.setItem('auth_token', token);
+               const collectedCount = await fetchUserCollection(token)
                const mappedUser = {
                  id: dbUser.UserId?.toString() || dbUser.id || mockUser.id,
                  name: dbUser.Name || dbUser.name || 'Usuario',
@@ -82,7 +112,7 @@ function App() {
                  level: dbUser.Level ?? dbUser.level ?? 1,
                  points: dbUser.Points ?? dbUser.points ?? 0,
                  rank: dbUser.Rank ?? dbUser.rank,
-                 collectionCount: dbUser.collectionCount || 0
+                 collectionCount: dbUser.collectionCount || collectedCount || 0
                };
                setCurrentUser(mappedUser);
                setView('home');
@@ -101,7 +131,7 @@ function App() {
         )
 
       case 'user-collection':
-        return <UserCollection cards={mockCards} />
+        return <UserCollection cards={userCards} />
 
       case 'catalog':
         return (
@@ -134,12 +164,35 @@ function App() {
         return (
           <ScanResult
             card={mockCards[0]}
-            modelId={scannedModelId}  // ahora sí lo pasa correctamente
-            onAdd={() => {
-              setView('user-collection')
+            modelId={scannedModelId}
+            onAdd={async () => {
+              const cardId = scannedModelId ? modelToCardId[scannedModelId] : null;
+              if (cardId && currentUser) {
+                try {
+                  const token = localStorage.getItem('auth_token');
+                  const res = await fetch('http://localhost:5000/api/collection/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ cardId })
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setCurrentUser((prev: any) => ({
+                      ...prev,
+                      points: data.points,
+                      level: data.level,
+                      collectionCount: data.collectionCount
+                    }));
+                    await fetchUserCollection(token!);
+                  }
+                } catch (err) {
+                  console.error('Error al guardar carta:', err);
+                }
+              }
+              setView('user-collection');
             }}
             onDiscard={() => {
-              setScannedModelId(null) // limpia
+              setScannedModelId(null)
               setView('home')
             }}
             onStartTrivia={handleStartTrivia}
@@ -174,6 +227,48 @@ function App() {
             isLoading={triviaLoading}
             error={triviaError}
             onRetry={handleStartTrivia}
+            onFinish={async (score: number) => {
+              const token = localStorage.getItem('auth_token');
+              if (currentUser && token) {
+                const cardId = scannedModelId ? modelToCardId[scannedModelId] : null;
+                try {
+                  // Guardar carta en la colección
+                  if (cardId) {
+                    const cardRes = await fetch('http://localhost:5000/api/collection/add', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({ cardId })
+                    });
+                    const cardData = await cardRes.json();
+                    if (cardData.success) {
+                      setCurrentUser((prev: any) => ({
+                        ...prev,
+                        collectionCount: cardData.collectionCount
+                      }));
+                    }
+                  }
+                  // Guardar puntaje de trivia
+                  const scoreRes = await fetch('http://localhost:5000/api/trivia/save-score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ pointsEarned: score * 100 })
+                  });
+                  const scoreData = await scoreRes.json();
+                  if (scoreData.success) {
+                    setCurrentUser((prev: any) => ({
+                      ...prev,
+                      points: scoreData.points,
+                      level: scoreData.level
+                    }));
+                  }
+                  await fetchUserCollection(token);
+                } catch (err) {
+                  console.error('Error al finalizar trivia:', err);
+                }
+              }
+              setScannedModelId(null);
+              setView('home');
+            }}
           />
         )
 

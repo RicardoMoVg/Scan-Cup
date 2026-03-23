@@ -16,10 +16,30 @@ export interface PlayerInfo {
 }
 
 export const playerNameMap: Record<string, PlayerInfo> = {
-    'messi2026': { name: 'Lionel Messi', position: 'DEL', team: 'ARG' },
-    'messi':     { name: 'Lionel Messi', position: 'DEL', team: 'ARG' },
-    'ochoa2026': { name: 'Guillermo Ochoa', position: 'POR', team: 'MEX' },
-    'ochoa':     { name: 'Guillermo Ochoa', position: 'POR', team: 'MEX' },
+    'messi2026':    { name: 'Lionel Messi',        position: 'DEL', team: 'ARG' },
+    'messi':        { name: 'Lionel Messi',        position: 'DEL', team: 'ARG' },
+    'ochoa2026':    { name: 'Guillermo Ochoa',     position: 'POR', team: 'MEX' },
+    'ochoa':        { name: 'Guillermo Ochoa',     position: 'POR', team: 'MEX' },
+    'mbappe2026':   { name: 'Kylian Mbappé',       position: 'EXT', team: 'FRA' },
+    'neymar2026':   { name: 'Neymar Jr.',          position: 'EXT', team: 'BRA' },
+    'pulisic2026':  { name: 'Christian Pulisic',   position: 'EXT', team: 'USA' },
+    'ronaldo2026':  { name: 'Cristiano Ronaldo',   position: 'DEL', team: 'POR' },
+    'son2026':      { name: 'Son Heung-min',        position: 'EXT', team: 'KOR' },
+    'takefusa2026': { name: 'Takefusa Kubo',       position: 'EXT', team: 'JPN' },
+};
+
+// Mapeo de modelId (QR escaneado) → CardId en la base de datos
+export const modelToCardId: Record<string, string> = {
+    'messi2026':    'MES-10',
+    'messi':        'MES-10',
+    'ochoa2026':    'OCH-01',
+    'ochoa':        'OCH-01',
+    'mbappe2026':   'MBP-09',
+    'neymar2026':   'NEY-11',
+    'pulisic2026':  'PUL-10',
+    'ronaldo2026':  'CR7-07',
+    'son2026':      'SON-07',
+    'takefusa2026': 'TAK-08',
 };
 
 const LEVELS = ['Pro', 'Pro', 'Experto', 'Experto', 'Leyenda'];

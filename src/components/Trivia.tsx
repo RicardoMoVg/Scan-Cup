@@ -1,14 +1,8 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import Modelo from './Modelo';
 import type { TriviaQuestion, PlayerInfo } from '../utils/triviaApi';
-
-import { useState, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import Modelo from './Modelo'
-
 
 interface TriviaProps {
     modelId?: string | null;
@@ -17,124 +11,10 @@ interface TriviaProps {
     isLoading: boolean;
     error: string | null;
     onRetry: () => void;
+    onFinish: (score: number) => void;
 }
 
-export function Trivia({ modelId, playerInfo, questions, isLoading, error, onRetry }: TriviaProps) {
-interface Player {
-    name: string;
-    position: string;
-    team: string;
-    image: string;
-}
-
-interface Option {
-    id: string;
-    text: string;
-}
-
-interface Question {
-    id: number;
-    number: number;
-    total: number;
-    level: string;
-    streak: number;
-    text: string;
-    options: Option[];
-    correct: string;
-}
-
-interface TriviaData {
-    player: Player;
-    questions: Question[];
-}
-
-export function Trivia({ modelId }: TriviaProps) {
-    const triviaData: Record<string, TriviaData> = {
-        'ochoa': {
-            player: {
-                name: "G. Ochoa",
-                position: "POR",
-                team: "MEX",
-                image: "https://images.unsplash.com/photo-1517466787929-bc90951d6dbd?q=80&w=2670&auto=format&fit=crop"
-            },
-            questions: [
-                {
-                    id: 1,
-                    number: 1,
-                    total: 2,
-                    level: 'Pro',
-                    streak: 12,
-                    text: "¿En cuántas ediciones de la Copa del Mundo de la FIFA ha sido convocado Guillermo Ochoa con la Selección Mexicana?",
-                    options: [
-                        { id: 'A', text: "3" },
-                        { id: 'B', text: "4" },
-                        { id: 'C', text: "5" },
-                        { id: 'D', text: "6" }
-                    ],
-                    correct: 'C'
-                },
-                {
-                    id: 2,
-                    number: 2,
-                    total: 2,
-                    level: 'Pro',
-                    streak: 13,
-                    text: "¿Cuál fue el primer club europeo en el que militó Memo Ochoa, convirtiéndose en el primer portero mexicano en jugar en el viejo continente?",
-                    options: [
-                        { id: 'A', text: "Málaga CF (España)" },
-                        { id: 'B', text: "Granada CF (España)" },
-                        { id: 'C', text: "Standard de Lieja (Bélgica)" },
-                        { id: 'D', text: "AC Ajaccio (Francia)" }
-                    ],
-                    correct: 'D'
-                }
-            ]
-        },
-        'messi': {
-            player: {
-                name: "L. Messi",
-                position: "DEL",
-                team: "ARG",
-                image: "https://images.unsplash.com/photo-1517466787929-bc90951d6dbd?q=80&w=2670&auto=format&fit=crop"
-            },
-            questions: [
-                {
-                    id: 1,
-                    number: 1,
-                    total: 2,
-                    level: 'Leyenda',
-                    streak: 1,
-                    text: "¿En qué año ganó Messi su primer Balón de Oro?",
-                    options: [
-                        { id: 'A', text: "2008" },
-                        { id: 'B', text: "2009" },
-                        { id: 'C', text: "2010" },
-                        { id: 'D', text: "2011" }
-                    ],
-                    correct: 'B'
-                },
-                {
-                    id: 2,
-                    number: 2,
-                    total: 2,
-                    level: 'Leyenda',
-                    streak: 2,
-                    text: "¿A qué selección le anotó Messi su primer gol en un Mundial (2006)?",
-                    options: [
-                        { id: 'A', text: "Serbia y Montenegro" },
-                        { id: 'B', text: "Costa de Marfil" },
-                        { id: 'C', text: "Irán" },
-                        { id: 'D', text: "Bosnia" }
-                    ],
-                    correct: 'A'
-                }
-            ]
-        }
-    };
-
-
-    const currentData = modelId && triviaData[modelId] ? triviaData[modelId] : triviaData['ochoa'];
-    const { questions, player } = currentData;
+export function Trivia({ modelId, playerInfo, questions, isLoading, error, onRetry, onFinish }: TriviaProps) {
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -201,9 +81,10 @@ export function Trivia({ modelId }: TriviaProps) {
                 <p className="text-gray-300 text-lg mb-2 text-center max-w-xs">
                     Has respondido <span className="text-wc-green font-bold">{score}</span> de <span className="font-bold">{questions.length}</span> preguntas correctamente.
                 </p>
-                <p className="text-gray-400 text-sm mb-8 text-center">sobre {playerInfo.name}</p>
+                <p className="text-gray-400 text-sm mb-2 text-center">sobre {playerInfo.name}</p>
+                <p className="text-wc-green font-bold text-xl mb-8">+{score * 100} XP ganados</p>
                 <button
-                    onClick={() => window.location.reload()}
+                    onClick={() => onFinish(score)}
                     className="py-4 px-10 rounded-full bg-wc-green text-white font-bold hover:bg-green-500 transition-all shadow-[0_0_20px_rgba(34,197,94,0.4)] active:scale-95"
                 >
                     Volver al Inicio
@@ -258,37 +139,35 @@ export function Trivia({ modelId }: TriviaProps) {
                     <div className="relative w-48 aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border-2 border-white/10">
                         <div className="absolute inset-0 bg-red-500/10 blur-xl rounded-full scale-150 animate-pulse"></div>
                         <div className="absolute inset-0 z-10">
-                            <Canvas camera={{ position: [0, 0, 4.5], fov: 50 }} gl={{ alpha: true, antialias: true }}>
-                                <hemisphereLight intensity={0.7} groundColor="#555555" />
-                                <directionalLight position={[3, 4, 5]} intensity={0.9} />
-                                <directionalLight position={[-3, -2, 5]} intensity={0.4} />
-                                <directionalLight position={[0, 2, -5]} intensity={0.35} />
-                                <group scale={0.75} position={[0, -0.2, 0]} rotation={[50.2, -26.5, 49.85]}>
-                                    {modelId && <Modelo textureId={modelId} />}
-                                </group>
-                                <OrbitControls enableZoom={false} enablePan={false} />
-                            </Canvas>
-                            {/* 3. Renderizamos el Canvas solo si modelId existe, imitando el éxito de ScanResult */}
-                            {modelId && (
+                            {(() => {
+                                const effectiveModelId = modelId || 'ochoa2026';
+                                return (
                                 <Canvas
                                     camera={{ position: [0, 0, 4.5], fov: 50 }}
                                     gl={{ alpha: true, antialias: true }}
-                                    onCreated={({ gl }) => gl.setClearColor(0x000000, 0)} // Aseguramos transparencia total
+                                    onCreated={({ gl }: any) => gl.setClearColor(0x000000, 0)}
                                 >
                                     <hemisphereLight intensity={0.7} groundColor="#555555" />
                                     <directionalLight position={[3, 4, 5]} intensity={0.9} />
                                     <directionalLight position={[-3, -2, 5]} intensity={0.4} />
                                     <directionalLight position={[0, 2, -5]} intensity={0.35} />
 
-                                    <group scale={0.75} position={[0, -0.2, 0]} rotation={[50.2, -26.5, 49.85]}>
+                                    <group scale={0.65} position={[0, 0, 0]} rotation={[50.2, -26.5, 49.85]}>
                                         <Suspense fallback={null}>
-                                            <Modelo textureId={modelId} preview={true} />
+                                            <Modelo 
+                                                textureId={`textV2/${effectiveModelId}`}
+                                                frontLayers={['1', '2', '3']}
+                                                backSuffix="4"
+                                                parallax={true}
+                                                preview={true} 
+                                            />
                                         </Suspense>
                                     </group>
 
                                     <OrbitControls enableZoom={false} enablePan={false} />
                                 </Canvas>
-                            )}
+                                );
+                            })()}
                         </div>
                         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent z-20 pointer-events-none"></div>
                         <div className="absolute bottom-3 left-3 text-left z-30 pointer-events-none">
