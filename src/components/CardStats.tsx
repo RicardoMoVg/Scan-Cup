@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Card } from '../types';
+import { CardImage } from './CardImage';
 
 interface CardStatsProps {
     card: Card;
@@ -70,7 +71,7 @@ export function CardStats({ card, onClose }: CardStatsProps) {
 
                     <div className="relative transform hover:scale-105 transition-transform duration-500 z-10 w-64 aspect-3/4">
                         <div className="w-full h-full rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border-[3px] border-white/10 backdrop-blur-sm bg-white/5">
-                            <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
+                            <CardImage card={card} className="absolute inset-0 w-full h-full object-cover" />
                             <div className="absolute bottom-0 inset-x-0 bg-linear-to-t from-black/80 via-black/40 to-transparent p-5 pt-16 text-white text-center">
                                 <h2 className="text-2xl font-black mb-0.5 leading-none drop-shadow-md">{card.name}</h2>
                                 <p className="text-xs text-white/70 font-bold uppercase tracking-widest">{card.position}</p>

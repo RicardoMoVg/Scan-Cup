@@ -1,4 +1,9 @@
-import type { User } from '../types';
+import { useState } from 'react';
+import type { User, Match } from '../types';
+import { LiveMatches } from './LiveMatches';
+import { MatchDetailModal } from './MatchDetailModal';
+import { Timeline } from './Timeline';
+import { useMatches } from '../hooks/useMatches';
 
 interface HomeProps {
     user: User;
@@ -8,6 +13,14 @@ interface HomeProps {
 }
 
 export function Home({ user, onScanClick, onViewCollection, onStartTour }: HomeProps) {
+    const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+    const { matches, connected } = useMatches();
+
+    // Obtener siempre la versión más actualizada del partido seleccionado
+    const selectedMatch = selectedMatchId
+        ? matches.find(m => m.id === selectedMatchId) ?? null
+        : null;
+
     return (
         <div className="min-h-screen bg-wc-light-bg pb-20">
             <div className="bg-wc-red rounded-b-[40px] pt-16 pb-20 px-6 relative shadow-xl z-0">
@@ -63,11 +76,24 @@ export function Home({ user, onScanClick, onViewCollection, onStartTour }: HomeP
                 </div>
             </div>
 
-            <div className="px-6">
-                <button id="view-collection-btn" onClick={onViewCollection} className="w-full py-4 bg-wc-red text-white font-bold rounded-xl hover:bg-red-700 transition shadow-lg">
+            <LiveMatches matches={matches} connected={connected} onMatchClick={(m: Match) => setSelectedMatchId(m.id)} />
+
+            <div className="px-6 relative z-10">
+                <button id="view-collection-btn" onClick={onViewCollection} className="w-full py-4 bg-wc-red text-white font-bold rounded-xl hover:bg-red-700 transition shadow-[0_10px_20px_rgba(230,57,70,0.3)] hover:shadow-[0_15px_25px_rgba(230,57,70,0.4)] hover:-translate-y-1">
                     Ver Mi Colección
                 </button>
             </div>
+
+            <div className="mt-6 mb-8">
+                <Timeline />
+            </div>
+
+            {selectedMatch && (
+                <MatchDetailModal
+                    match={selectedMatch}
+                    onClose={() => setSelectedMatchId(null)}
+                />
+            )}
         </div>
     );
 }

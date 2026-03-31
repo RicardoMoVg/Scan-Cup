@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Card } from '../types';
 import { CardFilterModal, type FilterOptions } from './CardFilterModal';
+import { CardImage } from './CardImage';
 
 interface CatalogCollectionProps {
     cards: Card[];
@@ -59,9 +60,8 @@ export function CatalogCollection({ cards, onBack }: CatalogCollectionProps) {
                             className="relative rounded-xl overflow-hidden shadow-lg transition duration-300 cursor-pointer bg-carbon-core border-2 border-cyan-pulse/30 hover:border-cyan-pulse hover:shadow-[0_0_20px_rgba(0,209,178,0.4)] hover:scale-105 transform"
                         >
                             <div className="aspect-3/4 relative bg-midnight-grid/50">
-                                <img
-                                    src={card.imageUrl}
-                                    alt={card.name}
+                                <CardImage
+                                    card={card}
                                     className="w-full h-full object-cover"
                                 />
                                 <div className="absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full bg-cyan-pulse text-midnight-grid">

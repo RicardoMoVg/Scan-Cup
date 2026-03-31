@@ -4,8 +4,6 @@ import { useTexture } from '@react-three/drei'
 import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 
-/** Separación en Z entre capas de parallax (unidades del modelo) */
-const PARALLAX_Z_GAP = 0.04
 
 interface ModeloProps {
   textureId: string
@@ -15,6 +13,8 @@ interface ModeloProps {
   backSuffix?: string
   /** Activa el modo parallax: cada capa se renderiza en un Z distinto */
   parallax?: boolean
+  /** Separación en Z entre capas de parallax (unidades del modelo) */
+  zGap?: number
   qrData?: any
   preview?: boolean
 }
@@ -24,6 +24,7 @@ export default function Modelo({
   frontLayers = ['1'],
   backSuffix = '2',
   parallax = false,
+  zGap = 0.04,
   qrData,
   preview,
 }: ModeloProps) {
@@ -65,7 +66,7 @@ export default function Modelo({
             depthWrite: i === 0,
           })
           const mesh = new THREE.Mesh(geometry, mat)
-          mesh.position.z = i * PARALLAX_Z_GAP
+          mesh.position.x = i * zGap
           mesh.renderOrder = i
           group.add(mesh)
         })

@@ -160,16 +160,21 @@ function App() {
           />
         )
 
-      case 'scan-result':
+      case 'scan-result': {
+        // Busca la carta real: primero en userCards, luego en mockCards, último fallback
+        const cardId = scannedModelId ? (modelToCardId[scannedModelId] || scannedModelId) : null
+        const scannedCard =
+          (cardId && userCards.find(c => c.id === cardId)) ||
+          (cardId && mockCards.find(c => c.id === cardId)) ||
+          mockCards[0]
         return (
           <ScanResult
-            card={mockCards[0]}
+            card={scannedCard}
             modelId={scannedModelId}
             onAdd={async () => {
-              const cardId = scannedModelId ? modelToCardId[scannedModelId] : null;
-              if (cardId && currentUser) {
+              const token = localStorage.getItem('auth_token');
+              if (cardId && token) {
                 try {
-                  const token = localStorage.getItem('auth_token');
                   const res = await fetch('/api/collection/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -183,7 +188,9 @@ function App() {
                       level: data.level,
                       collectionCount: data.collectionCount
                     }));
-                    await fetchUserCollection(token!);
+                    await fetchUserCollection(token);
+                  } else {
+                    console.error(`No se pudo agregar la carta ${cardId}:`, data.message);
                   }
                 } catch (err) {
                   console.error('Error al guardar carta:', err);
@@ -198,6 +205,7 @@ function App() {
             onStartTrivia={handleStartTrivia}
           />
         )
+      }
 
       case 'show-videos':
         return (

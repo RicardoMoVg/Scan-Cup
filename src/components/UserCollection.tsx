@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Card } from '../types';
 import { CardStats } from './CardStats';
-
+import { CardImage } from './CardImage';
 
 interface UserCollectionProps {
     cards: Card[];
@@ -64,7 +64,7 @@ export function UserCollection({ cards }: UserCollectionProps) {
                     >
                         {card.isCollected ? (
                             <div className={`relative aspect-3/4 rounded-xl overflow-hidden shadow-md border-2 transition-transform hover:scale-105 cursor-pointer ${card.rarity === 'legendary' ? 'border-yellow-400' : 'border-transparent'}`}>
-                                <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
+                                <CardImage card={card} className="w-full h-full object-cover" />
 
                                 <div className="absolute top-2 left-2">
                                     {card.rarity === 'legendary' && (

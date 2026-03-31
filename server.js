@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createRequire } from 'module';
+import http from 'http';
+import { Server } from 'socket.io';
+import { startSimulation } from './simulationEngine.js';
 
 const require = createRequire(import.meta.url);
 const sql = require('mssql/msnodesqlv8');
@@ -11,6 +14,17 @@ const sql = require('mssql/msnodesqlv8');
 dotenv.config();
 
 const app = express();
+const serverObj = http.createServer(app);
+const io = new Server(serverObj, {
+    cors: {
+        origin: '*', // Permitir conexión desde Vite en desarrollo
+        methods: ['GET', 'POST']
+    }
+});
+
+// Iniciamos la simulación
+startSimulation(io);
+
 app.use(cors());
 app.use(express.json());
 
@@ -259,7 +273,7 @@ app.post('/api/trivia/save-score', verifyToken, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, async () => {
+serverObj.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
     try {
         await sql.connect(dbConfig);
@@ -268,3 +282,4 @@ app.listen(PORT, async () => {
         console.error('Error al conectar a SQL Server en el arranque:', err.message);
     }
 });
+

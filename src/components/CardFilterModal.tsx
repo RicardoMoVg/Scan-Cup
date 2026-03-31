@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Card } from '../types';
+import { CardImage } from './CardImage';
 
 interface CardFilterModalProps {
     card: Card;
@@ -146,7 +147,7 @@ export function CardFilterModal({ card, isOpen, onClose, onApplyFilters }: CardF
                                     <span className="text-2xl drop-shadow-md">🏆</span>
                                 </div>
 
-                                <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover relative z-0" />
+                                <CardImage card={card} className="absolute inset-0 w-full h-full object-cover z-0" />
 
                                 <div className="absolute bottom-0 inset-x-0 bg-linear-to-t from-black/95 via-black/60 to-transparent p-6 pt-24 text-white">
                                     <h2 className="text-3xl font-black leading-none mb-1 drop-shadow-xl">{card.name}</h2>
