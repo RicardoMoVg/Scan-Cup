@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 interface LoginProps {
     onLogin: (token: string, user: any) => void;
@@ -17,7 +18,7 @@ export function Login({ onLogin }: LoginProps) {
         setError('');
         setLoading(true);
 
-        const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+        const endpoint = isLogin ? `${API_BASE}/api/auth/login` : `${API_BASE}/api/auth/register`;
         const payload = isLogin ? { email, password } : { name, email, password };
 
         try {

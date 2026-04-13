@@ -51,7 +51,7 @@ function BallScene({ onImpact }: { onImpact: () => void }) {
     return group
   }, [obj, textures])
 
-  useFrame((_, delta) => {
+  useFrame((_state: any, delta: number) => {
     if (!groupRef.current) return
     elapsed.current += delta
     const t = elapsed.current

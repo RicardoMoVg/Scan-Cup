@@ -13,6 +13,7 @@ import { ScanResult } from './components/ScanResult'
 import { ShowVideos } from './components/ShowVideos'
 import { EditVideos } from './components/EditVideos'
 import { generateTriviaQuestions, playerNameMap, modelToCardId } from './utils/triviaApi'
+import { API_BASE } from './utils/apiBase'
 import type { TriviaQuestion, PlayerInfo } from './utils/triviaApi'
 import { Login } from './components/Login'
 
@@ -38,7 +39,7 @@ function App() {
 
   const fetchUserCollection = useCallback(async (token: string) => {
     try {
-      const res = await fetch('/api/collection', {
+      const res = await fetch(`${API_BASE}/api/collection`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -175,7 +176,7 @@ function App() {
               const token = localStorage.getItem('auth_token');
               if (cardId && token) {
                 try {
-                  const res = await fetch('/api/collection/add', {
+                  const res = await fetch(`${API_BASE}/api/collection/add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ cardId })
@@ -242,7 +243,7 @@ function App() {
                 try {
                   // Guardar carta en la colección
                   if (cardId) {
-                    const cardRes = await fetch('/api/collection/add', {
+                    const cardRes = await fetch(`${API_BASE}/api/collection/add`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                       body: JSON.stringify({ cardId })
@@ -256,7 +257,7 @@ function App() {
                     }
                   }
                   // Guardar puntaje de trivia
-                  const scoreRes = await fetch('/api/trivia/save-score', {
+                  const scoreRes = await fetch(`${API_BASE}/api/trivia/save-score`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ pointsEarned: score * 100 })

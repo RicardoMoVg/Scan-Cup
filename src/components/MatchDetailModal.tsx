@@ -89,10 +89,19 @@ export function MatchDetailModal({ match, onClose }: MatchDetailModalProps) {
         narrationEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [narrations.length])
 
-    // Ordenar narraciones por minuto
-    const sortedNarrations = [...narrations].sort((a, b) => a.minute - b.minute)
+    // Bug 7: orden estable — secundario por posicion original para narraciones del mismo minuto
+    const sortedNarrations = narrations
+        .map((n, i) => ({ n, i }))
+        .sort((a, b) => a.n.minute !== b.n.minute ? a.n.minute - b.n.minute : a.i - b.i)
+        .map(({ n }) => n)
 
-    const progressPct = Math.min((match.time / 90) * 100, 100)
+    // Bug 4: barra de progreso correcta contabilizando el descanso (0-45 → 0-50%, 46-90 → 50-100%)
+    let progressPct: number
+    if (match.status === 'not_started') progressPct = 0
+    else if (match.status === 'finished') progressPct = 100
+    else if (match.status === 'half_time') progressPct = 50
+    else if (match.status === 'first_half') progressPct = Math.min((match.time / 45) * 50, 50)
+    else progressPct = Math.min(50 + ((match.time - 45) / 45) * 50, 100)
 
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm" onClick={onClose}>
@@ -163,6 +172,16 @@ export function MatchDetailModal({ match, onClose }: MatchDetailModalProps) {
                         <span className="text-base">📍</span>
                         <span className="text-gray-400 text-xs font-medium">{venue}</span>
                     </div>
+
+                    {/* Banner de partido finalizado */}
+                    {match.status === 'finished' && (
+                        <div className="mt-4 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
+                            <p className="text-white font-black text-xs tracking-widest uppercase">Partido Finalizado</p>
+                            <p className="text-gray-400 text-xs mt-1">
+                                Resultado final · {match.homeTeam} {match.homeScore} – {match.awayScore} {match.awayTeam}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Scrollable content */}

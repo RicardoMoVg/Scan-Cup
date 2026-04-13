@@ -9,6 +9,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    host: true,  // escucha en todas las interfaces (requerido para Capacitor live reload)
     proxy: {
       '/api': 'http://localhost:5000',
       '/socket.io': {

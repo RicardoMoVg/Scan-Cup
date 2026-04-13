@@ -12,7 +12,6 @@ interface ARViewProps {
 export function ARView({ onScan, onBack }: ARViewProps) {
   const [modelId, setModelId] = useState<string | null>(null)
   const [qrData, setQrData] = useState<any>(null)
-  const [isMobile, setIsMobile] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -22,11 +21,6 @@ export function ARView({ onScan, onBack }: ARViewProps) {
   const missCounter = useRef(0)
   const frameSkip = useRef(0)
 
-  // Detectar si es móvil o PC
-  useEffect(() => {
-    const checkMobile = /Mobi|Android/i.test(navigator.userAgent)
-    setIsMobile(checkMobile)
-  }, [])
 
   useEffect(() => {
     isActiveRef.current = true

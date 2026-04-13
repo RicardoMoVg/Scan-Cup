@@ -18,10 +18,11 @@ function MatchCard({ match, onClick }: { match: Match; onClick: () => void }) {
     const { text, live } = statusLabel(match.status)
     const lastGoal = [...match.events].reverse().find(e => e.type === 'goal')
     const isActive = match.status === 'first_half' || match.status === 'second_half'
+    const isFinished = match.status === 'finished'
 
     return (
         <div
-            className="bg-wc-dark-bg rounded-2xl p-4 shadow-lg relative overflow-hidden shrink-0 w-[280px] cursor-pointer active:scale-95 transition-transform"
+            className={`bg-wc-dark-bg rounded-2xl p-4 shadow-lg relative overflow-hidden shrink-0 w-[280px] cursor-pointer active:scale-95 transition-transform ${isFinished ? 'opacity-50 grayscale' : ''}`}
             onClick={onClick}
         >
             {/* Background glow for live matches */}
@@ -91,6 +92,8 @@ interface LiveMatchesProps {
 }
 
 export function LiveMatches({ matches, connected, onMatchClick }: LiveMatchesProps) {
+    const allFinished = matches.length > 0 && matches.every(m => m.status === 'finished')
+
     return (
         <div className="px-6 mb-6">
             <div className="flex items-center justify-between mb-3">
@@ -105,13 +108,24 @@ export function LiveMatches({ matches, connected, onMatchClick }: LiveMatchesPro
                     {connected ? 'Sin partidos activos' : 'Cargando partidos...'}
                 </div>
             ) : (
-                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-                    {matches.map(match => (
-                        <div key={match.id} className="snap-start">
-                            <MatchCard match={match} onClick={() => onMatchClick(match)} />
+                <>
+                    <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
+                        {matches.map(match => (
+                            <div key={match.id} className="snap-start">
+                                <MatchCard match={match} onClick={() => onMatchClick(match)} />
+                            </div>
+                        ))}
+                    </div>
+                    {allFinished && (
+                        <div className="mt-3 bg-wc-dark-bg rounded-2xl px-4 py-3 flex items-center gap-3">
+                            <span className="relative flex h-2 w-2 shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-wc-green opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-wc-green" />
+                            </span>
+                            <span className="text-gray-400 text-xs font-semibold">Preparando nueva ronda de partidos...</span>
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
         </div>
     )

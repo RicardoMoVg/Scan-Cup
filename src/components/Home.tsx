@@ -1,9 +1,38 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { User, Match } from '../types';
 import { LiveMatches } from './LiveMatches';
 import { MatchDetailModal } from './MatchDetailModal';
 import { Timeline } from './Timeline';
-import { useMatches } from '../hooks/useMatches';
+import { useMatches, type GoalNotification } from '../hooks/useMatches';
+
+function GoalToast({ notification, onDismiss }: { notification: GoalNotification; onDismiss: () => void }) {
+    useEffect(() => {
+        const timer = setTimeout(onDismiss, 4000)
+        return () => clearTimeout(timer)
+    }, [notification.id, onDismiss])
+
+    const scoringFlag = notification.scoringTeam === 'home' ? notification.homeFlag : notification.awayFlag
+    const scoringTeamName = notification.scoringTeam === 'home' ? notification.homeTeam : notification.awayTeam
+
+    return (
+        <div className="fixed top-4 left-4 right-4 z-[100] animate-slide-down">
+            <div className="bg-[#1A1A1A] border border-wc-red/50 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl">
+                <div className="w-9 h-9 bg-wc-red/20 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-lg">⚽</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-white font-black text-sm">
+                        {scoringFlag} ¡GOL DE {scoringTeamName.toUpperCase()}! · {notification.minute}'
+                    </p>
+                    <p className="text-gray-400 text-xs truncate">
+                        {notification.player} · {notification.homeFlag} {notification.homeScore}–{notification.awayScore} {notification.awayFlag}
+                    </p>
+                </div>
+                <button onClick={onDismiss} className="text-gray-500 hover:text-gray-300 text-xs shrink-0 px-1">✕</button>
+            </div>
+        </div>
+    )
+}
 
 interface HomeProps {
     user: User;
@@ -14,7 +43,7 @@ interface HomeProps {
 
 export function Home({ user, onScanClick, onViewCollection, onStartTour }: HomeProps) {
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
-    const { matches, connected } = useMatches();
+    const { matches, connected, goalNotification, clearGoalNotification } = useMatches();
 
     // Obtener siempre la versión más actualizada del partido seleccionado
     const selectedMatch = selectedMatchId
@@ -23,6 +52,9 @@ export function Home({ user, onScanClick, onViewCollection, onStartTour }: HomeP
 
     return (
         <div className="min-h-screen bg-wc-light-bg pb-20">
+            {goalNotification && (
+                <GoalToast notification={goalNotification} onDismiss={clearGoalNotification} />
+            )}
             <div className="bg-wc-red rounded-b-[40px] pt-16 pb-20 px-6 relative shadow-xl z-0">
                 <div className="flex justify-between items-center mb-8">
                     <div className="flex items-center space-x-2">
