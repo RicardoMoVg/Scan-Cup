@@ -112,5 +112,10 @@ export const mockCards: Card[] = [
     createCard("KOS-15", "Diogo Costa", "Portugal", "POR", false, 'common'),
     createCard("DON-21", "Gianluigi Donnarumma", "Italia", "POR", false, 'common'),
     createCard("TER-01", "Marc-André ter Stegen", "Alemania", "POR", false, 'common'),
+
+    // Cartas escaneables por QR que faltaban en el catálogo local
+    createCard("OCH-01", "Guillermo Ochoa",   "México", "POR", false, 'rare'),
+    createCard("PUL-10", "Christian Pulisic", "USA",    "EXT", false, 'rare'),
+    createCard("TAK-08", "Takefusa Kubo",     "Japón",  "EXT", false, 'rare'),
 ];
 

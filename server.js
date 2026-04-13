@@ -256,6 +256,99 @@ app.post('/api/trivia/save-score', verifyToken, async (req, res) => {
     }
 });
 
+// Generar preguntas de trivia con Gemini AI (clave protegida en Render)
+app.post('/api/trivia/generate', verifyToken, async (req, res) => {
+    try {
+        const { playerName } = req.body;
+        if (!playerName) return res.status(400).json({ success: false, message: 'playerName requerido' });
+
+        const apiKey = process.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+            console.error('[Trivia] VITE_GEMINI_API_KEY no está configurada en las variables de entorno de Render');
+            return res.status(500).json({ success: false, message: 'API key de Gemini no configurada en el servidor' });
+        }
+
+        const prompt = `Eres un experto en fútbol. Genera exactamente 5 preguntas de trivia de opción múltiple sobre el futbolista ${playerName}. Las preguntas deben ser variadas: logros, estadísticas, clubes, selección nacional e historia personal. Responde ÚNICAMENTE con un JSON válido con este formato exacto, sin texto adicional ni markdown:
+{
+  "preguntas": [
+    {
+      "texto": "¿Pregunta sobre ${playerName}?",
+      "opciones": {"A": "opción1", "B": "opción2", "C": "opción3", "D": "opción4"},
+      "correcta": "A"
+    }
+  ]
+}`;
+
+        const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 2048,
+                        responseMimeType: 'application/json'
+                    }
+                })
+            }
+        );
+
+        if (!geminiRes.ok) {
+            const errBody = await geminiRes.json().catch(() => ({}));
+            const apiMsg = errBody?.error?.message || '';
+            console.error(`[Trivia] Error de Gemini (${geminiRes.status}):`, apiMsg);
+            if (geminiRes.status === 429) {
+                return res.status(429).json({ success: false, message: 'Límite de la API de Gemini alcanzado. Intenta más tarde.' });
+            }
+            return res.status(502).json({ success: false, message: `Error de Gemini (${geminiRes.status}): ${apiMsg}` });
+        }
+
+        const geminiData = await geminiRes.json();
+        const candidate = geminiData.candidates?.[0];
+
+        if (!candidate?.content?.parts?.[0]?.text) {
+            const blockReason = geminiData.promptFeedback?.blockReason;
+            return res.status(500).json({
+                success: false,
+                message: blockReason
+                    ? `Solicitud bloqueada por Gemini: ${blockReason}`
+                    : `La IA terminó sin contenido (finishReason: ${candidate?.finishReason || 'desconocido'})`
+            });
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(candidate.content.parts[0].text);
+        } catch {
+            console.error('[Trivia] JSON inválido recibido de Gemini');
+            return res.status(500).json({ success: false, message: 'La IA devolvió un formato no válido. Intenta de nuevo.' });
+        }
+
+        if (!parsed.preguntas || !Array.isArray(parsed.preguntas)) {
+            return res.status(500).json({ success: false, message: 'El JSON de Gemini no contiene el campo "preguntas".' });
+        }
+
+        const LEVELS = ['Pro', 'Pro', 'Experto', 'Experto', 'Leyenda'];
+        const questions = parsed.preguntas.slice(0, 5).map((q, i) => ({
+            id: i + 1,
+            number: i + 1,
+            total: 5,
+            level: LEVELS[i],
+            streak: i + 1,
+            text: String(q.texto),
+            options: Object.entries(q.opciones).map(([id, text]) => ({ id, text: String(text) })),
+            correct: String(q.correcta).toUpperCase().trim(),
+        }));
+
+        res.json({ success: true, questions });
+    } catch (err) {
+        console.error('[Trivia] Error inesperado:', err);
+        res.status(500).json({ success: false, message: 'Error al generar la trivia' });
+    }
+});
+
 const PORT = process.env.PORT || 5000;
 serverObj.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
