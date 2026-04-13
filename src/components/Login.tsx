@@ -8,7 +8,7 @@ interface LoginProps {
 export function Login({ onLogin }: LoginProps) {
     const [isLogin, setIsLogin] = useState(true);
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('carlos@scancup.com'); // default mock user email
+    const [email, setEmail] = useState(''); // Estado inicial vacío conforme a solicitud del usuario
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
