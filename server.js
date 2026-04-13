@@ -75,16 +75,16 @@ app.post('/api/auth/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const userCheck = await pool.query('SELECT "userid" FROM "users" WHERE "email" = $1', [email]);
+        const userCheck = await pool.query('SELECT userid FROM users WHERE email = $1', [email]);
 
         if (userCheck.rows.length > 0) {
             return res.status(400).json({ success: false, message: 'El usuario ya existe' });
         }
 
         const insertQuery = `
-            INSERT INTO "users" ("name", "email", "passwordhash", "level", "points")
+            INSERT INTO users (name, email, passwordhash, level, points)
             VALUES ($1, $2, $3, 1, 0)
-            RETURNING "userid" AS "UserId", "name" AS "Name", "email" AS "Email", "level" AS "Level", "points" AS "Points"
+            RETURNING userid AS "UserId", name AS "Name", email AS "Email", level AS "Level", points AS "Points"
         `;
         const result = await pool.query(insertQuery, [name, email, passwordHash]);
 
@@ -105,11 +105,11 @@ app.post('/api/auth/login', async (req, res) => {
         if (!email || !password) return res.status(400).json({ success: false, message: 'Faltan credenciales' });
 
         const result = await pool.query(`
-            SELECT "userid" AS "UserId", "name" AS "Name", "email" AS "Email", 
-                   "avatarurl" AS "AvatarUrl", "level" AS "Level", "points" AS "Points", 
-                   "passwordhash" AS "PasswordHash"
-            FROM "users" 
-            WHERE "email" = $1
+            SELECT userid AS "UserId", name AS "Name", email AS "Email", 
+                   avatarurl AS "AvatarUrl", level AS "Level", points AS "Points", 
+                   passwordhash AS "PasswordHash"
+            FROM users 
+            WHERE email = $1
         `, [email]);
 
         if (result.rows.length === 0) {
@@ -125,7 +125,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         const token = jwt.sign({ id: user.UserId }, process.env.JWT_SECRET || 'scancup_secret', { expiresIn: '7d' });
 
-        const countResult = await pool.query('SELECT COUNT(*) AS "collectionCount" FROM "usercards" WHERE "userid" = $1', [user.UserId]);
+        const countResult = await pool.query('SELECT COUNT(*) AS "collectionCount" FROM usercards WHERE userid = $1', [user.UserId]);
 
         delete user.PasswordHash;
         user.collectionCount = parseInt(countResult.rows[0].collectionCount);
@@ -157,27 +157,27 @@ app.get('/api/collection', async (req, res) => {
             params = [userId];
             query = `
                 SELECT
-                    c."cardid" AS "CardId", c."name" AS "Name", c."description" AS "Description", c."imageurl" AS "ImageUrl",
-                    c."country" AS "Country", c."position" AS "Position",
-                    c."statspeed" AS "StatSpeed", c."statshooting" AS "StatShooting", c."statpower" AS "StatPower",
-                    c."rarity" AS "Rarity",
-                    CASE WHEN uc."userid" IS NOT NULL THEN 1 ELSE 0 END AS "IsCollected",
-                    COALESCE(uc."quantity", 0) AS "Quantity"
-                FROM "cards" c
-                LEFT JOIN "usercards" uc ON c."cardid" = uc."cardid" AND uc."userid" = $1
-                ORDER BY c."createdat"
+                    c.cardid AS "CardId", c.name AS "Name", c.description AS "Description", c.imageurl AS "ImageUrl",
+                    c.country AS "Country", c.position AS "Position",
+                    c.statspeed AS "StatSpeed", c.statshooting AS "StatShooting", c.statpower AS "StatPower",
+                    c.rarity AS "Rarity",
+                    CASE WHEN uc.userid IS NOT NULL THEN 1 ELSE 0 END AS "IsCollected",
+                    COALESCE(uc.quantity, 0) AS "Quantity"
+                FROM cards c
+                LEFT JOIN usercards uc ON c.cardid = uc.cardid AND uc.userid = $1
+                ORDER BY c.createdat
             `;
         } else {
             query = `
                 SELECT
-                    c."cardid" AS "CardId", c."name" AS "Name", c."description" AS "Description", c."imageurl" AS "ImageUrl",
-                    c."country" AS "Country", c."position" AS "Position",
-                    c."statspeed" AS "StatSpeed", c."statshooting" AS "StatShooting", c."statpower" AS "StatPower",
-                    c."rarity" AS "Rarity",
+                    c.cardid AS "CardId", c.name AS "Name", c.description AS "Description", c.imageurl AS "ImageUrl",
+                    c.country AS "Country", c.position AS "Position",
+                    c.statspeed AS "StatSpeed", c.statshooting AS "StatShooting", c.statpower AS "StatPower",
+                    c.rarity AS "Rarity",
                     0 AS "IsCollected",
                     0 AS "Quantity"
-                FROM "cards" c
-                ORDER BY c."createdat"
+                FROM cards c
+                ORDER BY c.createdat
             `;
         }
 
@@ -209,28 +209,29 @@ app.post('/api/collection/add', verifyToken, async (req, res) => {
         const { cardId } = req.body;
         if (!cardId) return res.status(400).json({ success: false, message: 'cardId requerido' });
 
-        const cardCheck = await pool.query('SELECT "cardid" FROM "cards" WHERE "cardid" = $1', [cardId]);
+        const cardCheck = await pool.query('SELECT cardid FROM cards WHERE cardid = $1', [cardId]);
         if (cardCheck.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Carta no encontrada en el catálogo' });
         }
 
-        // Upsert en UserCards
-        await pool.query(`
-            INSERT INTO "usercards" ("userid", "cardid", "quantity")
-            VALUES ($1, $2, 1)
-            ON CONFLICT ("userid", "cardid")
-            DO UPDATE SET "quantity" = "usercards"."quantity" + 1
-        `, [req.userId, cardId]);
+        // Upsert en UserCards (Sintonía total con la restricción de DBeaver)
+        const query = `
+          INSERT INTO usercards (userid, cardid, quantity) 
+          VALUES ($1, $2, 1)
+          ON CONFLICT (userid, cardid) 
+          DO UPDATE SET quantity = usercards.quantity + 1;
+        `;
+        await pool.query(query, [req.userId, cardId]);
 
         // Actualizar puntos y nivel
         const updateResult = await pool.query(`
-            UPDATE "users"
-            SET "points" = "points" + 50, "level" = ("points" + 50) / 500 + 1
-            WHERE "userid" = $1
-            RETURNING "points" AS "Points", "level" AS "Level"
+            UPDATE users
+            SET points = points + 50, level = (points + 50) / 500 + 1
+            WHERE userid = $1
+            RETURNING points AS "Points", level AS "Level"
         `, [req.userId]);
 
-        const countResult = await pool.query('SELECT COUNT(*) as "collectionCount" FROM "usercards" WHERE "userid" = $1', [req.userId]);
+        const countResult = await pool.query('SELECT COUNT(*) as "collectionCount" FROM usercards WHERE userid = $1', [req.userId]);
 
         const { Points, Level } = updateResult.rows[0];
         const { collectionCount } = countResult.rows[0];
