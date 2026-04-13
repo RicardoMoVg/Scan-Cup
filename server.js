@@ -7,6 +7,15 @@ import http from 'http';
 import { Server } from 'socket.io';
 import pkg from 'pg';
 const { Pool } = pkg;
+import multer from 'multer';
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB máximo
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) cb(null, true);
+        else cb(new Error('Solo se permiten imágenes'));
+    }
+});
 import { startSimulation } from './simulationEngine.js';
 
 dotenv.config();
@@ -253,6 +262,28 @@ app.post('/api/trivia/save-score', verifyToken, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error en el servidor' });
+    }
+});
+
+// Subir foto de perfil
+app.patch('/api/profile/avatar', verifyToken, upload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No se recibió ningún archivo' });
+        }
+
+        const base64 = req.file.buffer.toString('base64');
+        const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+        await pool.query(
+            'UPDATE "users" SET "avatarurl" = $1 WHERE "userid" = $2',
+            [dataUrl, req.userId]
+        );
+
+        res.json({ success: true, avatarUrl: dataUrl });
+    } catch (err) {
+        console.error('[Avatar] Error:', err);
+        res.status(500).json({ success: false, message: 'Error al guardar el avatar' });
     }
 });
 

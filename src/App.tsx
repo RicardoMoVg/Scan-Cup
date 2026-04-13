@@ -147,6 +147,7 @@ function App() {
           <UserProfile
             user={currentUser || mockUser}
             onBack={() => setView('home')}
+            onAvatarUpdate={(url) => setCurrentUser((prev: any) => ({ ...prev, avatarUrl: url }))}
           />
         )
 

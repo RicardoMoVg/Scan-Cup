@@ -163,7 +163,6 @@ export function ARView({ onScan, onBack }: ARViewProps) {
         playsInline
         muted
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ transform: 'scaleX(-1)' }}
       />
 
       <canvas ref={canvasRef} className="hidden" />
