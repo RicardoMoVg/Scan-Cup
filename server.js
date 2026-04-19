@@ -407,11 +407,9 @@ app.get('/api/video/proxy', async (req, res) => {
         res.set('Access-Control-Allow-Origin', '*');
         res.set('Cache-Control', 'no-store');
 
-        const contentLength = videoRes.headers.get('content-length');
-        if (contentLength) res.set('Content-Length', contentLength);
-
-        const { Readable } = await import('stream');
-        Readable.fromWeb(videoRes.body).pipe(res);
+        // Usamos arrayBuffer para compatibilidad máxima con todas las versiones de Node.js
+        const buffer = await videoRes.arrayBuffer();
+        res.end(Buffer.from(buffer));
     } catch (err) {
         console.error('[VideoProxy] Error interno:', err);
         if (!res.headersSent) {

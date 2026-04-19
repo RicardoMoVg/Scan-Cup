@@ -80,6 +80,10 @@ export function DownloadVideoModal({ video, activeFilter, pixelSize, onClose, on
 
             // En APK nativa: enrutamos por el proxy del backend para evitar bloqueos de Cloudinary
             // (Cloudinary puede rechazar peticiones directas desde apps nativas sin Origin válido)
+            if (!API_BASE) {
+                throw new Error('VITE_API_URL no está configurado. Reconstruye la APK con el archivo .env actualizado (VITE_API_URL=https://scan-cup.onrender.com).');
+            }
+
             const proxyUrl = `${API_BASE}/api/video/proxy?url=${encodeURIComponent(cloudinaryUrl)}`;
 
             const savedFile = await Filesystem.downloadFile({
