@@ -381,6 +381,45 @@ app.post('/api/trivia/generate', verifyToken, async (req, res) => {
     }
 });
 
+// Proxy de descarga de videos de Cloudinary
+// El APK no puede descargar directo de Cloudinary (bloqueo de origen), este endpoint actúa como intermediario
+app.get('/api/video/proxy', async (req, res) => {
+    const { url } = req.query;
+
+    if (!url || typeof url !== 'string' || !decodeURIComponent(url).startsWith('https://res.cloudinary.com/')) {
+        return res.status(400).json({ error: 'URL inválida o no permitida' });
+    }
+
+    const cloudinaryUrl = decodeURIComponent(url);
+
+    try {
+        const videoRes = await fetch(cloudinaryUrl, {
+            headers: { 'User-Agent': 'ScanCupApp/1.0' }
+        });
+
+        if (!videoRes.ok) {
+            console.error(`[VideoProxy] Cloudinary respondió ${videoRes.status} para: ${cloudinaryUrl}`);
+            return res.status(videoRes.status).json({ error: `Cloudinary devolvió error ${videoRes.status}` });
+        }
+
+        const contentType = videoRes.headers.get('content-type') || 'video/mp4';
+        res.set('Content-Type', contentType);
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Cache-Control', 'no-store');
+
+        const contentLength = videoRes.headers.get('content-length');
+        if (contentLength) res.set('Content-Length', contentLength);
+
+        const { Readable } = await import('stream');
+        Readable.fromWeb(videoRes.body).pipe(res);
+    } catch (err) {
+        console.error('[VideoProxy] Error interno:', err);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Error interno al obtener el video de Cloudinary' });
+        }
+    }
+});
+
 const PORT = process.env.PORT || 5000;
 serverObj.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

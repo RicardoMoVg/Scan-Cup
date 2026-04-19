@@ -77,73 +77,73 @@ export function ShowVideos({ onVideoSelect, onBack }: ShowVideosProps) {
             id: 1,
             title: 'Gol de Cristiano Ronaldo',
             country: 'Portugal',
-            url: '/videos/(Relato de Mariano Closs) Gol de empate  de tiro libre de Cristiano Ronaldo [739gFc2zg78].mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289033/Relato_de_Mariano_Closs_Gol_de_empate_de_tiro_libre_de_Cristiano_Ronaldo_739gFc2zg78_zhkarj.mp4'
         },
         {
             id: 2,
             title: 'Gol de Pulisic',
             country: 'EEUU',
-            url: '/videos/Christian Pulisic_s Goal v IR Iran ｜ 2022 FIFA World Cup [HPg5hthnQ5E].mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566064/Christian_Pulisic_s_Goal_v_IR_Iran_2022_FIFA_World_Cup_HPg5hthnQ5E_r0f3wi.mp4'
         },
         {
             id: 3,
             title: 'Gol de Neymar',
             country: 'Brasil',
-            url: '/videos/GOL DO NEYMAR BRASIL X CROÁCIA - COPA DO MUNDO 2022 - GLOBO [mPrBGrizkQM].webm'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289036/GOL_DO_NEYMAR_BRASIL_X_CRO%C3%81CIA_-_COPA_DO_MUNDO_2022_-_GLOBO_mPrBGrizkQM_e3c6sl.webm'
         },
         {
             id: 4,
             title: 'Gol de Iniesta',
             country: 'España',
-            url: '/videos/Gol de Andres Iniesta-España Campeon [6-EqlQMPmDI].mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566065/Gol_de_Andres_Iniesta-Espa%C3%B1a_Campeon_6-EqlQMPmDI_bwtgrz.mp4'
         },
         {
             id: 5,
             title: 'Golazo de Son Heung-Min',
             country: 'Corea',
-            url: '/videos/Golazo de Son Heung-Min México no lo vio venir  ｜ Mexico vs Corea [eF8XL0Bk9O0].mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289035/Golazo_de_Son_Heung-Min_M%C3%A9xico_no_lo_vio_venir_Mexico_vs_Corea_eF8XL0Bk9O0_n4sxy8.mp4'
         },
         {
             id: 6,
             title: 'Empate de Mbappé',
             country: 'Francia',
-            url: '/videos/MBAPPE  EMPATA EL PARTIDO VS ARGENTINA ｜ Argentina 2 vs Francia 2 [GBoh2c86Fho].mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289034/MBAPPE_EMPATA_EL_PARTIDO_VS_ARGENTINA_Argentina_2_vs_Francia_2_GBoh2c86Fho_ed8x3g.mp4'
         },
         {
             id: 7,
             title: 'Gol de Messi',
             country: 'Argentina',
-            url: '/videos/Messi.mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566114/Messi_dbpou0.mp4'
         },
         {
             id: 8,
             title: 'Gol de Kubo',
             country: 'Japón',
-            url: '/videos/TAKEFUSA KUBO - INSOLITO GOL  ⧸  JAPON HOY TV [ZmEZt5TsRw4].mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566113/TAKEFUSA_KUBO_-_INSOLITO_GOL_JAPON_HOY_TV_ZmEZt5TsRw4_btrzem.mp4'
         },
         {
             id: 9,
             title: 'Momento Épico 3',
             country: 'Copa Mundial',
-            url: '/videos/Video 3.mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566114/Messi_dbpou0.mp4'
         },
         {
             id: 10,
             title: 'Momento Épico 4',
             country: 'Copa Mundial',
-            url: '/videos/Video 4.mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566145/Video_4_szz6xr.mp4'
         },
         {
             id: 11,
             title: 'Momento Épico 5',
             country: 'Copa Mundial',
-            url: '/videos/Video 5.mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566161/Video_5_fwheac.mp4'
         },
         {
             id: 12,
             title: 'Momento Épico 6',
             country: 'Copa Mundial',
-            url: '/videos/Video 6.mp4'
+            url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566181/Video_6_dyglqh.mp4'
         }
     ];
 

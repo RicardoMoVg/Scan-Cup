@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-
-interface EditVideosProps {
+import { DownloadVideoModal } from './DownloadVideoModal';interface EditVideosProps {
     video: any;
     onBack: () => void;
 }
@@ -16,6 +15,7 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
     const [isPlaying, setIsPlaying] = useState(true);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -113,8 +113,11 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                 <h2 className="text-white font-black text-lg tracking-widest uppercase">
                     Momento <span className="text-wc-red">Épico</span>
                 </h2>
-                <button className="text-white font-bold text-sm bg-wc-green px-6 py-2.5 rounded-full shadow-[0_0_15px_rgba(0,135,81,0.5)] hover:bg-wc-green-light transition-all transform hover:scale-105">
-                    GUARDAR
+                <button 
+                    onClick={() => setShowDownloadModal(true)}
+                    className="text-white font-bold text-sm bg-wc-green px-6 py-2.5 rounded-full shadow-[0_0_15px_rgba(0,135,81,0.5)] hover:bg-wc-green-light transition-all transform hover:scale-105"
+                >
+                    SIGUIENTE
                 </button>
             </div>
 
@@ -239,6 +242,26 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
                     </button>
                 ))}
             </div>
+
+            {/* Modal de Descarga */}
+            {showDownloadModal && (
+                <DownloadVideoModal
+                    video={video}
+                    activeFilter={activeFilter}
+                    pixelSize={pixelSize}
+                    onClose={() => setShowDownloadModal(false)}
+                    onDownloadStart={() => {
+                        if (videoRef.current) videoRef.current.pause();
+                        setIsPlaying(false);
+                    }}
+                    onDownloadComplete={(success) => {
+                        // Opcional: Cerrar totalmente y volver home en caso de éxito
+                        if (success) {
+                            setTimeout(() => onBack(), 1000);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
