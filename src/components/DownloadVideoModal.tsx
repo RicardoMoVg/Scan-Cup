@@ -170,17 +170,17 @@ export function DownloadVideoModal({
 
             // Intentar High Profile L4.0 (mejor compatibilidad en reproductores de escritorio Windows/Mac)
             let selectedCodec = 'avc1.640028'; 
-            let support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h });
+            let support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h, hardwareAcceleration: 'prefer-software' });
             
             // Failsafe a Main Profile L4.2
             if (!support.supported) {
                 selectedCodec = 'avc1.4d002a';
-                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h });
+                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h, hardwareAcceleration: 'prefer-software' });
             }
             // Failsafe a Constrained Baseline L3.1 (móviles más antiguos)
             if (!support.supported) {
                 selectedCodec = 'avc1.42E01F';
-                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h });
+                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h, hardwareAcceleration: 'prefer-software' });
             }
 
             const codecConfig: VideoEncoderConfig = {
@@ -189,7 +189,8 @@ export function DownloadVideoModal({
                 height: h,
                 bitrate: 3_000_000,
                 framerate: fps,
-                latencyMode: 'realtime',
+                latencyMode: 'realtime', // Obligatorio 'realtime' para evitar B-frames (mp4-muxer requiere timestamps crecientes monótonos)
+                hardwareAcceleration: 'prefer-software', // Bypassea bugs del codificador de hardware en Windows/Android que omiten cabeceras clave
                 avc: { format: 'avc' },
             };
 
@@ -202,9 +203,9 @@ export function DownloadVideoModal({
             canvas.height = h;
             const ctx = canvas.getContext('2d')!;
 
-            // Colectar chunks durante la codificación y ordenarlos antes de muxear.
-            // El encoder puede emitir chunks fuera de orden DTS (B-frames), lo que
-            // haría fallar a mp4-muxer. Ordenar garantiza monotonicidad estricta.
+            // Colectar chunks durante la codificación.
+            // IMPORTANTE: mp4-muxer necesita recibir estos pedazos en estricto orden de decodificación (DTS).
+            // VideoEncoder siempre los emite en orden de decodificación. NO SE DEBEN ORDENAR POR PTS (timestamp).
             type ChunkEntry = { chunk: EncodedVideoChunk; meta: EncodedVideoChunkMetadata | undefined };
             const collectedChunks: ChunkEntry[] = [];
 
@@ -263,9 +264,7 @@ export function DownloadVideoModal({
 
             videoEl.loop = wasLooping;
 
-            // Ordenar por timestamp antes de muxear para garantizar DTS creciente
             setProgressText('Empaquetando MP4…');
-            collectedChunks.sort((a, b) => a.chunk.timestamp - b.chunk.timestamp);
 
             const target = new ArrayBufferTarget();
             const muxer = new Muxer({
