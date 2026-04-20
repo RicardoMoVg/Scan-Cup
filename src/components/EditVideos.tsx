@@ -133,6 +133,7 @@ export function EditVideos({ video, videoSrc, localPath, onBack }: EditVideosPro
                             <video
                                 ref={videoRef}
                                 src={`${videoUrl}#t=0.001`}
+                                crossOrigin="anonymous"
                                 autoPlay
                                 muted
                                 loop

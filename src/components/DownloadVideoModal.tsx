@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -137,11 +138,16 @@ export function DownloadVideoModal({
         }
     };
 
-    // Aplica el filtro localmente usando Canvas + MediaRecorder y guarda el resultado
+    // Aplica el filtro y exporta como MP4 usando WebCodecs + mp4-muxer
     const downloadWithFilter = async () => {
         const videoEl = videoRef.current;
         if (!videoEl) {
             alert('No se pudo acceder al video. Intenta de nuevo.');
+            return;
+        }
+
+        if (typeof VideoEncoder === 'undefined') {
+            alert('Tu navegador no soporta la codificación de video. Usa Chrome o Edge actualizados.');
             return;
         }
 
@@ -151,67 +157,100 @@ export function DownloadVideoModal({
             onDownloadStart();
             setProgressText('Preparando grabación…');
 
-            const w = videoEl.videoWidth || 1280;
-            const h = videoEl.videoHeight || 720;
+            // H.264 requiere dimensiones pares
+            const w = Math.floor((videoEl.videoWidth || 1280) / 2) * 2;
+            const h = Math.floor((videoEl.videoHeight || 720) / 2) * 2;
+            const duration = videoEl.duration || 1;
+            const fps = 30;
+
+            // Constrained Baseline L3.1 — máxima compatibilidad en Android
+            const codecConfig: VideoEncoderConfig = {
+                codec: 'avc1.42E01F',
+                width: w,
+                height: h,
+                bitrate: 3_000_000,
+                framerate: fps,
+                latencyMode: 'quality',
+            };
+
+            const support = await VideoEncoder.isConfigSupported(codecConfig);
+            if (!support.supported) {
+                throw new Error('El codec H.264 no está soportado en este dispositivo o navegador.');
+            }
 
             const canvas = document.createElement('canvas');
             canvas.width = w;
             canvas.height = h;
             const ctx = canvas.getContext('2d')!;
 
-            // Elegir el mejor formato disponible en este WebView
-            const mimeType =
-                ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']
-                    .find(t => MediaRecorder.isTypeSupported(t)) ?? 'video/webm';
+            const target = new ArrayBufferTarget();
+            const muxer = new Muxer({
+                target,
+                video: { codec: 'avc', width: w, height: h },
+                fastStart: 'in-memory',
+            });
 
-            const stream = canvas.captureStream(30);
-            const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3_000_000 });
-            const chunks: Blob[] = [];
+            const wasLooping = videoEl.loop;
+            videoEl.loop = false;
+            videoEl.currentTime = 0;
 
-            recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-
-            // Grabación en tiempo real
             await new Promise<void>((resolve, reject) => {
-                recorder.onstop = () => resolve();
-                recorder.onerror = () => reject(new Error('Fallo al grabar'));
+                // Encoder creado dentro del Promise para que el error callback pueda rechazarlo
+                const encoder = new VideoEncoder({
+                    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                    error: reject,
+                });
+                encoder.configure(codecConfig);
 
-                const duration = videoEl.duration || 1;
+                let frameIndex = 0;
+                let finalized = false;
 
-                const drawLoop = () => {
-                    if (recorder.state === 'inactive') return;
-                    if (videoEl.ended) {
-                        // Dejar que MediaRecorder reciba los últimos frames antes de parar
-                        setTimeout(() => {
-                            if (recorder.state !== 'inactive') recorder.stop();
-                        }, 300);
-                        return;
-                    }
-                    setRecordingProgress(Math.round((videoEl.currentTime / duration) * 100));
-                    drawFilteredFrame(ctx, videoEl, w, h, activeFilter, pixelSize);
-                    requestAnimationFrame(drawLoop);
+                const finalize = () => {
+                    if (finalized) return;
+                    finalized = true;
+                    encoder.flush()
+                        .then(() => { muxer.finalize(); resolve(); })
+                        .catch(reject);
                 };
 
-                videoEl.currentTime = 0;
-                recorder.start(200);
+                const encodeFrame = () => {
+                    if (finalized) return;
+                    if (videoEl.ended || videoEl.paused) {
+                        finalize();
+                        return;
+                    }
+
+                    drawFilteredFrame(ctx, videoEl, w, h, activeFilter, pixelSize);
+
+                    const frame = new VideoFrame(canvas, {
+                        timestamp: Math.round(videoEl.currentTime * 1_000_000),
+                        duration: Math.round(1_000_000 / fps),
+                    });
+                    encoder.encode(frame, { keyFrame: frameIndex % (fps * 2) === 0 });
+                    frame.close();
+                    frameIndex++;
+
+                    setRecordingProgress(Math.round((videoEl.currentTime / duration) * 100));
+                    requestAnimationFrame(encodeFrame);
+                };
+
+                videoEl.onended = finalize;
 
                 videoEl.play()
                     .then(() => {
                         setProgressText('Aplicando filtro…');
-                        requestAnimationFrame(drawLoop);
+                        requestAnimationFrame(encodeFrame);
                     })
                     .catch(reject);
-
-                videoEl.onended = () => {
-                    if (recorder.state !== 'inactive') recorder.stop();
-                };
             });
+
+            videoEl.loop = wasLooping;
 
             setProgressText('Codificando video…');
             setRecordingProgress(100);
 
-            const blob = new Blob(chunks, { type: mimeType });
-            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-            const fileName = `ScanCup_filtered_${Date.now()}.${ext}`;
+            const blob = new Blob([target.buffer], { type: 'video/mp4' });
+            const fileName = `ScanCup_filtered_${Date.now()}.mp4`;
 
             if (Capacitor.isNativePlatform()) {
                 const base64 = await blobToBase64(blob);
@@ -223,7 +262,6 @@ export function DownloadVideoModal({
                 setProgressText('Guardando en tu Galería…');
                 await saveAndShare(saved.uri);
             } else {
-                // En web: descarga directa del blob
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
@@ -236,6 +274,7 @@ export function DownloadVideoModal({
             onDownloadComplete(true);
         } catch (e: any) {
             console.error('[Modal] downloadWithFilter error:', e);
+            if (videoRef.current) videoRef.current.loop = true;
             onDownloadComplete(false);
             alert(`Error al procesar el video:\n${e?.message || e}`);
         } finally {
