@@ -168,19 +168,16 @@ export function DownloadVideoModal({
             const duration = videoEl.duration || 1;
             const fps = 30;
 
-            // Intentar High Profile L4.0 (mejor compatibilidad en reproductores de escritorio Windows/Mac)
-            let selectedCodec = 'avc1.640028'; 
+            // Usamos EXCLUSIVAMENTE Constrained Baseline Profile L3.1 (avc1.42E01F)
+            // Esto es crucial porque Baseline prohíbe los B-frames por estándar.
+            // Firefox y otros navegadores a veces ignoran 'latencyMode: realtime' e
+            // intentan generar B-frames si el perfil es High/Main, rompiendo mp4-muxer.
+            let selectedCodec = 'avc1.42E01F';
             let support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h, hardwareAcceleration: 'prefer-software' });
             
-            // Failsafe a Main Profile L4.2
+            // Failsafe por si exige hardware en algún dispositivo ultralimitado
             if (!support.supported) {
-                selectedCodec = 'avc1.4d002a';
-                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h, hardwareAcceleration: 'prefer-software' });
-            }
-            // Failsafe a Constrained Baseline L3.1 (móviles más antiguos)
-            if (!support.supported) {
-                selectedCodec = 'avc1.42E01F';
-                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h, hardwareAcceleration: 'prefer-software' });
+                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h });
             }
 
             const codecConfig: VideoEncoderConfig = {
@@ -265,7 +262,11 @@ export function DownloadVideoModal({
             videoEl.loop = wasLooping;
 
             setProgressText('Empaquetando MP4…');
-
+            
+            // Ordenamos por timestamp para asegurar monotonicidad estricta para mp4-muxer.
+            // Como aseguramos el perfil Baseline, no existen B-frames, por lo que
+            // ordenar por PTS es matemáticamente seguro e idéntico al orden DTS esperado.
+            collectedChunks.sort((a, b) => a.chunk.timestamp - b.chunk.timestamp);
             const target = new ArrayBufferTarget();
             const muxer = new Muxer({
                 target,
