@@ -163,17 +163,31 @@ export function DownloadVideoModal({
             const duration = videoEl.duration || 1;
             const fps = 30;
 
-            // Constrained Baseline L3.1 — máxima compatibilidad en Android
+            // Intentar High Profile L4.0 (mejor compatibilidad en reproductores de escritorio Windows/Mac)
+            let selectedCodec = 'avc1.640028'; 
+            let support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h });
+            
+            // Failsafe a Main Profile L4.2
+            if (!support.supported) {
+                selectedCodec = 'avc1.4d002a';
+                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h });
+            }
+            // Failsafe a Constrained Baseline L3.1 (móviles más antiguos)
+            if (!support.supported) {
+                selectedCodec = 'avc1.42E01F';
+                support = await VideoEncoder.isConfigSupported({ codec: selectedCodec, width: w, height: h });
+            }
+
             const codecConfig: VideoEncoderConfig = {
-                codec: 'avc1.42E01F',
+                codec: selectedCodec,
                 width: w,
                 height: h,
                 bitrate: 3_000_000,
                 framerate: fps,
                 latencyMode: 'quality',
+                avc: { format: 'avc' }
             };
 
-            const support = await VideoEncoder.isConfigSupported(codecConfig);
             if (!support.supported) {
                 throw new Error('El codec H.264 no está soportado en este dispositivo o navegador.');
             }
