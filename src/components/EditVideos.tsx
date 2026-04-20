@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { DownloadVideoModal } from './DownloadVideoModal';interface EditVideosProps {
+import { DownloadVideoModal } from './DownloadVideoModal';
+
+interface EditVideosProps {
     video: any;
+    videoSrc: string;
+    localPath: string | null;
     onBack: () => void;
 }
 
-export function EditVideos({ video, onBack }: EditVideosProps) {
-    const videoUrl = video?.url;
+export function EditVideos({ video, videoSrc, localPath, onBack }: EditVideosProps) {
+    const videoUrl = videoSrc || video?.url;
     const [activeFilter, setActiveFilter] = useState('none');
     const [pixelSize, setPixelSize] = useState(8);
 
@@ -247,18 +251,19 @@ export function EditVideos({ video, onBack }: EditVideosProps) {
             {showDownloadModal && (
                 <DownloadVideoModal
                     video={video}
+                    videoRef={videoRef}
                     activeFilter={activeFilter}
                     pixelSize={pixelSize}
+                    localPath={localPath}
                     onClose={() => setShowDownloadModal(false)}
                     onDownloadStart={() => {
-                        if (videoRef.current) videoRef.current.pause();
-                        setIsPlaying(false);
+                        // No pausar — el modal necesita el video reproduciéndose para grabar con filtro
+                        setIsPlaying(true);
                     }}
                     onDownloadComplete={(success) => {
-                        // Opcional: Cerrar totalmente y volver home en caso de éxito
-                        if (success) {
-                            setTimeout(() => onBack(), 1000);
-                        }
+                        if (videoRef.current) videoRef.current.pause();
+                        setIsPlaying(false);
+                        if (success) setTimeout(() => onBack(), 1000);
                     }}
                 />
             )}

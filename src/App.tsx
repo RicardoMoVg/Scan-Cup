@@ -12,6 +12,7 @@ import { Trivia } from './components/Trivia'
 import { ScanResult } from './components/ScanResult'
 import { ShowVideos } from './components/ShowVideos'
 import { EditVideos } from './components/EditVideos'
+import { useLocalVideos } from './hooks/useLocalVideos'
 import { generateTriviaQuestions, playerNameMap, modelToCardId } from './utils/triviaApi'
 import { API_BASE } from './utils/apiBase'
 import type { TriviaQuestion, PlayerInfo } from './utils/triviaApi'
@@ -33,6 +34,23 @@ function App() {
   >('login')
 
   const [selectedVideo, setSelectedVideo] = useState<any>(null)
+
+  // Lista de videos (debe coincidir con ShowVideos.tsx)
+  const videoList = [
+    { id: 1, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289033/Relato_de_Mariano_Closs_Gol_de_empate_de_tiro_libre_de_Cristiano_Ronaldo_739gFc2zg78_zhkarj.mp4' },
+    { id: 2, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566064/Christian_Pulisic_s_Goal_v_IR_Iran_2022_FIFA_World_Cup_HPg5hthnQ5E_r0f3wi.mp4' },
+    { id: 3, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289036/GOL_DO_NEYMAR_BRASIL_X_CRO%C3%81CIA_-_COPA_DO_MUNDO_2022_-_GLOBO_mPrBGrizkQM_e3c6sl.webm' },
+    { id: 4, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566065/Gol_de_Andres_Iniesta-Espa%C3%B1a_Campeon_6-EqlQMPmDI_bwtgrz.mp4' },
+    { id: 5, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289035/Golazo_de_Son_Heung-Min_M%C3%A9xico_no_lo_vio_venir_Mexico_vs_Corea_eF8XL0Bk9O0_n4sxy8.mp4' },
+    { id: 6, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1774289034/MBAPPE_EMPATA_EL_PARTIDO_VS_ARGENTINA_Argentina_2_vs_Francia_2_GBoh2c86Fho_ed8x3g.mp4' },
+    { id: 7, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566114/Messi_dbpou0.mp4' },
+    { id: 8, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566113/TAKEFUSA_KUBO_-_INSOLITO_GOL_JAPON_HOY_TV_ZmEZt5TsRw4_btrzem.mp4' },
+    { id: 9, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566114/Messi_dbpou0.mp4' },
+    { id: 10, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566145/Video_4_szz6xr.mp4' },
+    { id: 11, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566161/Video_5_fwheac.mp4' },
+    { id: 12, url: 'https://res.cloudinary.com/dowxmspke/video/upload/v1776566181/Video_6_dyglqh.mp4' },
+  ]
+  const { states: localVideoStates, downloadVideo: downloadLocalVideo, getVideoSrc } = useLocalVideos(videoList)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [userCards, setUserCards] = useState<Card[]>(mockCards)
   const { startTour } = useTour()
@@ -217,6 +235,8 @@ function App() {
               setView('edit-video')
             }}
             onBack={() => setView('home')}
+            localStates={localVideoStates}
+            onDownloadVideo={downloadLocalVideo}
           />
         )
 
@@ -224,6 +244,8 @@ function App() {
         return (
           <EditVideos
             video={selectedVideo}
+            videoSrc={getVideoSrc(selectedVideo)}
+            localPath={localVideoStates[selectedVideo?.id]?.localPath ?? null}
             onBack={() => setView('show-videos')}
           />
         )

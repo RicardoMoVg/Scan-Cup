@@ -407,6 +407,10 @@ app.get('/api/video/proxy', async (req, res) => {
         res.set('Access-Control-Allow-Origin', '*');
         res.set('Cache-Control', 'no-store');
 
+        const rawFilename = typeof req.query.filename === 'string' ? req.query.filename : null;
+        const filename = rawFilename || cloudinaryUrl.split('/').pop()?.split('?')[0] || 'video.mp4';
+        res.set('Content-Disposition', `attachment; filename="${filename}"`);
+
         // Usamos arrayBuffer para compatibilidad máxima con todas las versiones de Node.js
         const buffer = await videoRes.arrayBuffer();
         res.end(Buffer.from(buffer));

@@ -7,120 +7,239 @@ import { API_BASE } from '../utils/apiBase';
 
 interface DownloadVideoModalProps {
     video: any;
+    videoRef: React.RefObject<HTMLVideoElement>;
     activeFilter: string;
     pixelSize: number;
+    localPath: string | null;
     onClose: () => void;
     onDownloadStart: () => void;
     onDownloadComplete: (success: boolean) => void;
 }
 
-export function DownloadVideoModal({ video, activeFilter, pixelSize, onClose, onDownloadStart, onDownloadComplete }: DownloadVideoModalProps) {
-    const [isDownloading, setIsDownloading] = useState(false);
+// Mapa de filtros CSS idéntico al usado en EditVideos para preview
+const CSS_FILTERS: Record<string, string> = {
+    vintage: 'sepia(0.5) contrast(1.2)',
+    blur: 'blur(4px)',
+    thermal: 'invert(1) hue-rotate(180deg) contrast(1.5)',
+    color: 'saturate(2) contrast(1.1) hue-rotate(15deg)',
+};
+
+function drawFilteredFrame(
+    ctx: CanvasRenderingContext2D,
+    videoEl: HTMLVideoElement,
+    w: number,
+    h: number,
+    activeFilter: string,
+    pixelSize: number
+) {
+    if (activeFilter === 'pixelate') {
+        const size = Math.max(1, pixelSize);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(videoEl, 0, 0, Math.ceil(w / size), Math.ceil(h / size));
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(ctx.canvas, 0, 0, Math.ceil(w / size), Math.ceil(h / size), 0, 0, w, h);
+    } else {
+        ctx.filter = CSS_FILTERS[activeFilter] || 'none';
+        ctx.drawImage(videoEl, 0, 0, w, h);
+        ctx.filter = 'none';
+    }
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+export function DownloadVideoModal({
+    video,
+    videoRef,
+    activeFilter,
+    pixelSize,
+    localPath,
+    onClose,
+    onDownloadStart,
+    onDownloadComplete,
+}: DownloadVideoModalProps) {
+    const [isProcessing, setIsProcessing] = useState(false);
     const [progressText, setProgressText] = useState('');
+    const [recordingProgress, setRecordingProgress] = useState(0);
 
-    const applyCloudinaryFilter = (originalUrl: string, filterType: string, customPixel: number) => {
-        if (filterType === 'none') return originalUrl;
-
-        let effectParam = '';
-        switch (filterType) {
-            case 'pixelate':
-                effectParam = `e_pixelate:${customPixel}`;
-                break;
-            case 'vintage':
-                effectParam = 'e_sepia:50,e_contrast:10,e_saturation:-20';
-                break;
-            case 'blur':
-                effectParam = 'e_blur:200';
-                break;
-            case 'thermal':
-                effectParam = 'e_negate';
-                break;
-            case 'color':
-                effectParam = 'e_saturation:100,e_hue:15';
-                break;
-            default:
-                return originalUrl;
+    const saveAndShare = async (filePath: string) => {
+        try {
+            await Media.saveVideo({ path: filePath });
+        } catch (e) {
+            console.warn('[Modal] Media.saveVideo falló, continuando:', e);
         }
-
-        // Si la URL ya es de cloudinary, inyectamos el parámetro de efecto
-        if (originalUrl.includes('/upload/') && !originalUrl.includes(effectParam)) {
-            return originalUrl.replace('/upload/', `/upload/${effectParam}/`);
-        }
-        return originalUrl;
+        await Share.share({
+            title: 'Mi Video Épico de ScanCup',
+            text: '¡Mira mi video desde ScanCup!',
+            url: filePath,
+            dialogTitle: 'Compartir Video',
+        });
     };
 
-    const downloadVideo = async (withFilter: boolean) => {
+    const buildProxyUrl = (videoUrl: string, filename: string) =>
+        `${API_BASE}/api/video/proxy?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(filename)}`;
+
+    // Descarga el original: si ya está local solo copia a galería, sin red
+    const downloadOriginal = async () => {
         try {
-            setIsDownloading(true);
+            setIsProcessing(true);
             onDownloadStart();
-            setProgressText(withFilter ? 'Generando filtro en la nube...' : 'Descargando video...');
 
-            const cloudinaryUrl = withFilter ? applyCloudinaryFilter(video.url, activeFilter, pixelSize) : video.url;
+            const ext = video.url.split('?')[0].split('.').pop() || 'mp4';
+            const filename = `ScanCup_${(video.title as string | undefined)?.replace(/\s+/g, '_') || Date.now()}.${ext}`;
 
-            // Preservar la extensión real del video (puede ser .webm, .mp4, etc.)
-            const rawExt = cloudinaryUrl.split('?')[0].split('.').pop() || 'mp4';
-            const fileName = `ScanCup_Epic_${Date.now()}.${rawExt}`;
-
-            // En navegador web (npm run dev) usamos descarga clásica con anchor
-            if (!Capacitor.isNativePlatform()) {
+            if (Capacitor.isNativePlatform() && localPath) {
+                // Ya descargado localmente — copiar directo a galería sin red
+                setProgressText('Guardando en tu Galería…');
+                await saveAndShare(localPath);
+            } else if (Capacitor.isNativePlatform()) {
+                // Nativo pero sin copia local — descargar via proxy y guardar en caché
+                setProgressText('Descargando video…');
+                const proxyUrl = buildProxyUrl(video.url, filename);
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error(`Error ${response.status} al descargar`);
+                const blob = await response.blob();
+                const base64 = await blobToBase64(blob);
+                const saved = await Filesystem.writeFile({
+                    path: filename,
+                    data: base64,
+                    directory: Directory.Cache,
+                });
+                setProgressText('Guardando en tu Galería…');
+                await saveAndShare(saved.uri);
+            } else {
+                // Web — usar proxy para forzar descarga (evita restricción cross-origin)
+                setProgressText('Descargando video…');
+                const proxyUrl = buildProxyUrl(video.url, filename);
                 const link = document.createElement('a');
-                link.href = cloudinaryUrl;
-                link.setAttribute('download', fileName);
-                link.setAttribute('target', '_blank');
+                link.href = proxyUrl;
+                link.setAttribute('download', filename);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-
-                setProgressText('¡Listo!');
-                onDownloadComplete(true);
-                setIsDownloading(false);
-                onClose();
-                return;
-            }
-
-            // En APK nativa: enrutamos por el proxy del backend para evitar bloqueos de Cloudinary
-            // (Cloudinary puede rechazar peticiones directas desde apps nativas sin Origin válido)
-            if (!API_BASE) {
-                throw new Error('VITE_API_URL no está configurado. Reconstruye la APK con el archivo .env actualizado (VITE_API_URL=https://scan-cup.onrender.com).');
-            }
-
-            const proxyUrl = `${API_BASE}/api/video/proxy?url=${encodeURIComponent(cloudinaryUrl)}`;
-
-            const savedFile = await Filesystem.downloadFile({
-                url: proxyUrl,
-                path: fileName,
-                directory: Directory.Cache
-            });
-
-            if (!savedFile.path) {
-                throw new Error('El archivo descargado no tiene ruta válida');
-            }
-
-            setProgressText('Guardando en tu Galería...');
-
-            try {
-                await Media.saveVideo({ path: savedFile.path });
-            } catch (mediaError) {
-                console.warn('Media plugin err, continuing:', mediaError);
             }
 
             setProgressText('¡Listo!');
+            onDownloadComplete(true);
+        } catch (e: any) {
+            console.error('[Modal] downloadOriginal error:', e);
+            onDownloadComplete(false);
+            alert(`Error al guardar el video:\n${e?.message || e}`);
+        } finally {
+            setIsProcessing(false);
+            onClose();
+        }
+    };
 
-            await Share.share({
-                title: 'Mi Video Épico de ScanCup',
-                text: '¡Mira mi video desde ScanCup!',
-                url: savedFile.path,
-                dialogTitle: 'Compartir Video Épico'
+    // Aplica el filtro localmente usando Canvas + MediaRecorder y guarda el resultado
+    const downloadWithFilter = async () => {
+        const videoEl = videoRef.current;
+        if (!videoEl) {
+            alert('No se pudo acceder al video. Intenta de nuevo.');
+            return;
+        }
+
+        try {
+            setIsProcessing(true);
+            setRecordingProgress(0);
+            onDownloadStart();
+            setProgressText('Preparando grabación…');
+
+            const w = videoEl.videoWidth || 1280;
+            const h = videoEl.videoHeight || 720;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d')!;
+
+            // Elegir el mejor formato disponible en este WebView
+            const mimeType =
+                ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']
+                    .find(t => MediaRecorder.isTypeSupported(t)) ?? 'video/webm';
+
+            const stream = canvas.captureStream(30);
+            const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3_000_000 });
+            const chunks: Blob[] = [];
+
+            recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+            // Grabación en tiempo real
+            await new Promise<void>((resolve, reject) => {
+                recorder.onstop = () => resolve();
+                recorder.onerror = () => reject(new Error('Fallo al grabar'));
+
+                const duration = videoEl.duration || 1;
+
+                const drawLoop = () => {
+                    if (recorder.state === 'inactive') return;
+                    if (videoEl.ended) {
+                        // Dejar que MediaRecorder reciba los últimos frames antes de parar
+                        setTimeout(() => {
+                            if (recorder.state !== 'inactive') recorder.stop();
+                        }, 300);
+                        return;
+                    }
+                    setRecordingProgress(Math.round((videoEl.currentTime / duration) * 100));
+                    drawFilteredFrame(ctx, videoEl, w, h, activeFilter, pixelSize);
+                    requestAnimationFrame(drawLoop);
+                };
+
+                videoEl.currentTime = 0;
+                recorder.start(200);
+
+                videoEl.play()
+                    .then(() => {
+                        setProgressText('Aplicando filtro…');
+                        requestAnimationFrame(drawLoop);
+                    })
+                    .catch(reject);
+
+                videoEl.onended = () => {
+                    if (recorder.state !== 'inactive') recorder.stop();
+                };
             });
 
+            setProgressText('Codificando video…');
+            setRecordingProgress(100);
+
+            const blob = new Blob(chunks, { type: mimeType });
+            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const fileName = `ScanCup_filtered_${Date.now()}.${ext}`;
+
+            if (Capacitor.isNativePlatform()) {
+                const base64 = await blobToBase64(blob);
+                const saved = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64,
+                    directory: Directory.Cache,
+                });
+                setProgressText('Guardando en tu Galería…');
+                await saveAndShare(saved.uri);
+            } else {
+                // En web: descarga directa del blob
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+
+            setProgressText('¡Listo!');
             onDownloadComplete(true);
-        } catch (error: any) {
-            console.error('Download error:', error);
+        } catch (e: any) {
+            console.error('[Modal] downloadWithFilter error:', e);
             onDownloadComplete(false);
-            const detail = error?.message || error?.toString() || 'Error desconocido';
-            alert(`Error al descargar el video:\n${detail}\n\nVerifica tu conexión a internet.`);
+            alert(`Error al procesar el video:\n${e?.message || e}`);
         } finally {
-            setIsDownloading(false);
+            setIsProcessing(false);
             onClose();
         }
     };
@@ -129,35 +248,53 @@ export function DownloadVideoModal({ video, activeFilter, pixelSize, onClose, on
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <div className="bg-[#1a1a1a] p-6 rounded-3xl border border-gray-800 shadow-2xl w-full max-w-sm flex flex-col items-center animate-in fade-in zoom-in duration-300">
 
-                {isDownloading ? (
-                    <div className="flex flex-col items-center gap-4 py-8">
-                        <div className="w-16 h-16 border-4 border-wc-red border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-white font-bold">{progressText}</p>
+                {isProcessing ? (
+                    <div className="flex flex-col items-center gap-4 py-8 w-full">
+                        <div className="w-16 h-16 border-4 border-wc-red border-t-transparent rounded-full animate-spin" />
+                        <p className="text-white font-bold text-center">{progressText}</p>
+                        {recordingProgress > 0 && recordingProgress < 100 && (
+                            <div className="w-full bg-gray-700 rounded-full h-2">
+                                <div
+                                    className="bg-wc-red h-2 rounded-full transition-all duration-200"
+                                    style={{ width: `${recordingProgress}%` }}
+                                />
+                            </div>
+                        )}
+                        {recordingProgress > 0 && recordingProgress < 100 && (
+                            <p className="text-gray-400 text-xs">
+                                {recordingProgress}% — se procesa en tiempo real
+                            </p>
+                        )}
                     </div>
                 ) : (
                     <>
                         <h3 className="text-white font-black text-xl mb-2 text-center uppercase tracking-widest">
                             Guardar <span className="text-wc-red">Video</span>
                         </h3>
-                        <p className="text-gray-400 text-sm mb-8 text-center text-pretty">¿Cómo te gustaría descargar y compartir tu video épico?</p>
+                        <p className="text-gray-400 text-sm mb-8 text-center text-pretty">
+                            ¿Cómo quieres guardar tu momento épico?
+                        </p>
 
                         <div className="flex flex-col gap-4 w-full">
                             <button
-                                onClick={() => downloadVideo(false)}
+                                onClick={downloadOriginal}
                                 className="w-full bg-gray-800 text-white font-bold py-4 rounded-xl border border-gray-700 hover:bg-gray-700 transition"
                             >
-                                Descargar Original
-                                <div className="text-xs text-gray-400 font-normal mt-1">Sin filtros aplicados</div>
+                                Guardar Original
+                                <div className="text-xs text-gray-400 font-normal mt-1">
+                                    {localPath ? 'Guardado en tu dispositivo ✓' : 'Sin filtros'}
+                                </div>
                             </button>
 
                             {activeFilter !== 'none' && (
                                 <button
-                                    onClick={() => downloadVideo(true)}
+                                    onClick={downloadWithFilter}
                                     className="w-full bg-wc-red text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(230,57,70,0.4)] hover:bg-red-500 transition relative overflow-hidden group"
                                 >
-                                    Descargar Modificado
-                                    <div className="text-xs text-white/70 font-normal mt-1">Con filtro activo</div>
-                                    <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] group-hover:animate-[shine_1s_ease-in-out]"></div>
+                                    Guardar con Filtro
+                                    <div className="text-xs text-white/70 font-normal mt-1">
+                                        Procesado en tu teléfono
+                                    </div>
                                 </button>
                             )}
                         </div>
