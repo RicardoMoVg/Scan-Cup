@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -66,8 +66,10 @@ export function DownloadVideoModal({
     onDownloadComplete,
 }: DownloadVideoModalProps) {
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isFilterProcessing, setIsFilterProcessing] = useState(false);
     const [progressText, setProgressText] = useState('');
     const [recordingProgress, setRecordingProgress] = useState(0);
+    const cancelRef = useRef(false);
 
     const saveAndShare = async (filePath: string) => {
         try {
@@ -151,8 +153,11 @@ export function DownloadVideoModal({
             return;
         }
 
+        cancelRef.current = false;
+
         try {
             setIsProcessing(true);
+            setIsFilterProcessing(true);
             setRecordingProgress(0);
             onDownloadStart();
             setProgressText('Preparando grabación…');
@@ -184,8 +189,8 @@ export function DownloadVideoModal({
                 height: h,
                 bitrate: 3_000_000,
                 framerate: fps,
-                latencyMode: 'quality',
-                avc: { format: 'avc' }
+                latencyMode: 'realtime',
+                avc: { format: 'avc' },
             };
 
             if (!support.supported) {
@@ -197,19 +202,17 @@ export function DownloadVideoModal({
             canvas.height = h;
             const ctx = canvas.getContext('2d')!;
 
-            const target = new ArrayBufferTarget();
-            const muxer = new Muxer({
-                target,
-                video: { codec: 'avc', width: w, height: h },
-                fastStart: 'in-memory',
-                firstTimestampBehavior: 'offset',
-            });
+            // Colectar chunks durante la codificación y ordenarlos antes de muxear.
+            // El encoder puede emitir chunks fuera de orden DTS (B-frames), lo que
+            // haría fallar a mp4-muxer. Ordenar garantiza monotonicidad estricta.
+            type ChunkEntry = { chunk: EncodedVideoChunk; meta: EncodedVideoChunkMetadata | undefined };
+            const collectedChunks: ChunkEntry[] = [];
+
+            const frameDuration = Math.round(1_000_000 / fps);
 
             const wasLooping = videoEl.loop;
             videoEl.loop = false;
             videoEl.currentTime = 0;
-
-            const frameDuration = Math.round(1_000_000 / fps);
 
             await new Promise<void>((resolve, reject) => {
                 let frameIndex = 0;
@@ -221,9 +224,8 @@ export function DownloadVideoModal({
                     reject(e);
                 };
 
-                // Encoder creado dentro del Promise para que el error callback pueda rechazarlo
                 const encoder = new VideoEncoder({
-                    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                    output: (chunk, meta) => collectedChunks.push({ chunk, meta }),
                     error: abort,
                 });
                 encoder.configure(codecConfig);
@@ -231,21 +233,16 @@ export function DownloadVideoModal({
                 const finalize = () => {
                     if (finalized) return;
                     finalized = true;
-                    encoder.flush()
-                        .then(() => { muxer.finalize(); resolve(); })
-                        .catch(reject);
+                    encoder.flush().then(resolve).catch(reject);
                 };
 
                 const encodeFrame = () => {
                     if (finalized) return;
-                    if (videoEl.ended || videoEl.paused) {
-                        finalize();
-                        return;
-                    }
+                    if (cancelRef.current) { abort(null); return; }
+                    if (videoEl.ended || videoEl.paused) { finalize(); return; }
 
                     drawFilteredFrame(ctx, videoEl, w, h, activeFilter, pixelSize);
 
-                    // Timestamp basado en frameIndex — garantiza monotonicidad estricta
                     const frame = new VideoFrame(canvas, {
                         timestamp: frameIndex * frameDuration,
                         duration: frameDuration,
@@ -259,18 +256,29 @@ export function DownloadVideoModal({
                 };
 
                 videoEl.onended = finalize;
-
                 videoEl.play()
-                    .then(() => {
-                        setProgressText('Aplicando filtro…');
-                        requestAnimationFrame(encodeFrame);
-                    })
+                    .then(() => { setProgressText('Aplicando filtro…'); requestAnimationFrame(encodeFrame); })
                     .catch(reject);
             });
 
             videoEl.loop = wasLooping;
 
-            setProgressText('Codificando video…');
+            // Ordenar por timestamp antes de muxear para garantizar DTS creciente
+            setProgressText('Empaquetando MP4…');
+            collectedChunks.sort((a, b) => a.chunk.timestamp - b.chunk.timestamp);
+
+            const target = new ArrayBufferTarget();
+            const muxer = new Muxer({
+                target,
+                video: { codec: 'avc', width: w, height: h },
+                fastStart: 'in-memory',
+                firstTimestampBehavior: 'offset',
+            });
+            for (const { chunk, meta } of collectedChunks) {
+                muxer.addVideoChunk(chunk, meta);
+            }
+            muxer.finalize();
+
             setRecordingProgress(100);
 
             const blob = new Blob([target.buffer], { type: 'video/mp4' });
@@ -297,11 +305,14 @@ export function DownloadVideoModal({
             setProgressText('¡Listo!');
             onDownloadComplete(true);
         } catch (e: any) {
-            console.error('[Modal] downloadWithFilter error:', e);
             if (videoRef.current) videoRef.current.loop = true;
             onDownloadComplete(false);
-            alert(`Error al procesar el video:\n${e?.message || e}`);
+            if (!cancelRef.current) {
+                console.error('[Modal] downloadWithFilter error:', e);
+                alert(`Error al procesar el video:\n${e?.message || e}`);
+            }
         } finally {
+            setIsFilterProcessing(false);
             setIsProcessing(false);
             onClose();
         }
@@ -327,6 +338,14 @@ export function DownloadVideoModal({
                             <p className="text-gray-400 text-xs">
                                 {recordingProgress}% — se procesa en tiempo real
                             </p>
+                        )}
+                        {isFilterProcessing && (
+                            <button
+                                onClick={() => { cancelRef.current = true; }}
+                                className="mt-2 text-gray-500 hover:text-wc-red font-bold uppercase text-xs tracking-widest transition"
+                            >
+                                Cancelar
+                            </button>
                         )}
                     </div>
                 ) : (
