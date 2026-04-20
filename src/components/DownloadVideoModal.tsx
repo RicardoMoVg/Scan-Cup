@@ -202,22 +202,31 @@ export function DownloadVideoModal({
                 target,
                 video: { codec: 'avc', width: w, height: h },
                 fastStart: 'in-memory',
+                firstTimestampBehavior: 'offset',
             });
 
             const wasLooping = videoEl.loop;
             videoEl.loop = false;
             videoEl.currentTime = 0;
 
+            const frameDuration = Math.round(1_000_000 / fps);
+
             await new Promise<void>((resolve, reject) => {
+                let frameIndex = 0;
+                let finalized = false;
+
+                const abort = (e: unknown) => {
+                    if (finalized) return;
+                    finalized = true;
+                    reject(e);
+                };
+
                 // Encoder creado dentro del Promise para que el error callback pueda rechazarlo
                 const encoder = new VideoEncoder({
                     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-                    error: reject,
+                    error: abort,
                 });
                 encoder.configure(codecConfig);
-
-                let frameIndex = 0;
-                let finalized = false;
 
                 const finalize = () => {
                     if (finalized) return;
@@ -236,9 +245,10 @@ export function DownloadVideoModal({
 
                     drawFilteredFrame(ctx, videoEl, w, h, activeFilter, pixelSize);
 
+                    // Timestamp basado en frameIndex — garantiza monotonicidad estricta
                     const frame = new VideoFrame(canvas, {
-                        timestamp: Math.round(videoEl.currentTime * 1_000_000),
-                        duration: Math.round(1_000_000 / fps),
+                        timestamp: frameIndex * frameDuration,
+                        duration: frameDuration,
                     });
                     encoder.encode(frame, { keyFrame: frameIndex % (fps * 2) === 0 });
                     frame.close();
