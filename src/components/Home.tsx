@@ -4,6 +4,7 @@ import { LiveMatches } from './LiveMatches';
 import { MatchDetailModal } from './MatchDetailModal';
 import { Timeline } from './Timeline';
 import { useMatches, type GoalNotification } from '../hooks/useMatches';
+import iconLogo from '../../assets/icon.svg';
 
 function GoalToast({ notification, onDismiss }: { notification: GoalNotification; onDismiss: () => void }) {
     useEffect(() => {
@@ -57,11 +58,11 @@ export function Home({ user, onScanClick, onViewCollection, onStartTour }: HomeP
             )}
             <div className="bg-wc-red rounded-b-[40px] pt-16 pb-20 px-6 relative shadow-xl z-0">
                 <div className="flex justify-between items-center mb-8">
-                    <div className="flex items-center space-x-2">
-                        <div className="bg-white/20 p-2 rounded-full">
-                            <span className="text-white font-bold text-sm">⚽ WC26</span>
+                    <div className="flex items-center space-x-3">
+                        <div className="bg-white p-1 rounded-full shadow-md flex items-center justify-center">
+                            <img src={iconLogo} alt="ScanCup Logo" className="w-8 h-8 object-contain" />
                         </div>
-                        <span className="text-white/80 text-sm font-medium">APP OFICIAL</span>
+                        <span className="text-white text-xl font-black tracking-wide">ScanCup</span>
                     </div>
 
                     <button
